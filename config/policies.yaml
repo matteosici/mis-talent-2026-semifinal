@@ -1,0 +1,12 @@
+worst_month_basis: funding_need
+
+# Stable business rules. Changing a value here must not change the output shape.
+evidence_missing_markers:
+  - missing
+  - not provided
+  - absent
+  - thiếu
+  - chưa có
+credit_min_eligibility_score: 0.65
+reserve_breach_severity: High
+service_value_tolerance_vnd: 0

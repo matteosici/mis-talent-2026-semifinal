@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0",
+  "source_workbook": "MISTalent2026_OPC_AgenticAI_TeamPack_v2-1.xlsx",
+  "cashflow": {
+    "months": [
+      {
+        "month": "2026-06",
+        "expected_cash_in_vnd": 428000000,
+        "expected_cash_out_vnd": 610000000,
+        "cash_reserve_minimum_vnd": 550000000,
+        "closing_cash_vnd": -160000000,
+        "reserve_gap_vnd": 710000000,
+        "reserve_gap_basis": "cash_reserve_minimum_vnd - closing_cash_vnd",
+        "funding_need_vnd": 732000000,
+        "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
+        "breach": true,
+        "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
+        "severity": "High"
+      },
+      {
+        "month": "2026-07",
+        "expected_cash_in_vnd": 390000000,
+        "expected_cash_out_vnd": 1030000000,
+        "cash_reserve_minimum_vnd": 550000000,
+        "closing_cash_vnd": -130000000,
+        "reserve_gap_vnd": 680000000,
+        "reserve_gap_basis": "cash_reserve_minimum_vnd - closing_cash_vnd",
+        "funding_need_vnd": 1190000000,
+        "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
+        "breach": true,
+        "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
+        "severity": "High"
+      },
+      {
+        "month": "2026-08",
+        "expected_cash_in_vnd": 260000000,
+        "expected_cash_out_vnd": 720000000,
+        "cash_reserve_minimum_vnd": 550000000,
+        "closing_cash_vnd": -155000000,
+        "reserve_gap_vnd": 705000000,
+        "reserve_gap_basis": "cash_reserve_minimum_vnd - closing_cash_vnd",
+        "funding_need_vnd": 1010000000,
+        "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
+        "breach": true,
+        "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
+        "severity": "High"
+      },
+      {
+        "month": "2026-09",
+        "expected_cash_in_vnd": 1600000000,
+        "expected_cash_out_vnd": 880000000,
+        "cash_reserve_minimum_vnd": 550000000,
+        "closing_cash_vnd": 350000000,
+        "reserve_gap_vnd": 200000000,
+        "reserve_gap_basis": "cash_reserve_minimum_vnd - closing_cash_vnd",
+        "funding_need_vnd": -170000000,
+        "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
+        "breach": true,
+        "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
+        "severity": "High"
+      },
+      {
+        "month": "2026-10",
+        "expected_cash_in_vnd": 800000000,
+        "expected_cash_out_vnd": 640000000,
+        "cash_reserve_minimum_vnd": 550000000,
+        "closing_cash_vnd": 150000000,
+        "reserve_gap_vnd": 400000000,
+        "reserve_gap_basis": "cash_reserve_minimum_vnd - closing_cash_vnd",
+        "funding_need_vnd": 390000000,
+        "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
+        "breach": true,
+        "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
+        "severity": "High"
+      },
+      {
+        "month": "2026-11",
+        "expected_cash_in_vnd": 1500000000,
+        "expected_cash_out_vnd": 1200000000,
+        "cash_reserve_minimum_vnd": 550000000,
+        "closing_cash_vnd": 300000000,
+        "reserve_gap_vnd": 250000000,
+        "reserve_gap_basis": "cash_reserve_minimum_vnd - closing_cash_vnd",
+        "funding_need_vnd": 250000000,
+        "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
+        "breach": true,
+        "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
+        "severity": "High"
+      }
+    ],
+    "breach_count": 6,
+    "breach_count_basis": "count(months where breach = true)",
+    "worst_month": "2026-07",
+    "worst_month_basis": "funding_need",
+    "worst_month_funding_need_vnd": 1190000000,
+    "worst_month_reserve_gap_vnd": 680000000
+  },
+  "open_receivables_vnd": 635000000,
+  "open_receivables_basis": "sum(invoice_amount_vnd where status = Open)",
+  "issues": []
+}

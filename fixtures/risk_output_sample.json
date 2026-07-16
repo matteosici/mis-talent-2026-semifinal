@@ -1,0 +1,147 @@
+{
+  "schema_version": "1.0",
+  "source_workbook": "MISTalent2026_OPC_AgenticAI_TeamPack_v2-1.xlsx",
+  "invoice_priority_basis": "invoice_amount_vnd descending",
+  "invoice_priority": [
+    {
+      "invoice_id": "INV-004",
+      "customer_id": "CUS-004",
+      "invoice_amount_vnd": 310000000,
+      "payment_reliability": 0.71,
+      "priority_rank": 1,
+      "risk_rank": 2
+    },
+    {
+      "invoice_id": "INV-002",
+      "customer_id": "CUS-002",
+      "invoice_amount_vnd": 280000000,
+      "payment_reliability": 0.64,
+      "priority_rank": 2,
+      "risk_rank": 1
+    },
+    {
+      "invoice_id": "INV-003",
+      "customer_id": "CUS-001",
+      "invoice_amount_vnd": 45000000,
+      "payment_reliability": 0.78,
+      "priority_rank": 3,
+      "risk_rank": 3
+    }
+  ],
+  "high_risk_invoice_id": "INV-002",
+  "high_risk_basis": "minimum known payment_reliability",
+  "execution_feasibility": [
+    {
+      "contract_id": "CON-004",
+      "service_ids": ["SVC-004"],
+      "matched_service_list_price_vnd": 4200000000,
+      "execution_feasible": true,
+      "execution_feasibility_basis": "sum_unique_service_list_price_vnd matches contract_value_vnd",
+      "issues": []
+    }
+  ],
+  "credit_assessments": [
+    {
+      "credit_case_id": "CR-001",
+      "eligibility_score": 0.71,
+      "evidence_missing": false,
+      "evidence_missing_basis": "blocking marker in precheck_note",
+      "raw_approval_status": "Human approval required",
+      "derived_decision": "Proceed to recommendation",
+      "derived_decision_basis": "eligibility_score >= 0.65 and evidence_missing = false",
+      "divergence_id": null
+    },
+    {
+      "credit_case_id": "CR-002",
+      "eligibility_score": 0.63,
+      "evidence_missing": false,
+      "evidence_missing_basis": "blocking marker in precheck_note",
+      "raw_approval_status": "Human approval required",
+      "derived_decision": "Hold — No recommendation",
+      "derived_decision_basis": "eligibility_score >= 0.65 and evidence_missing = false",
+      "divergence_id": null
+    },
+    {
+      "credit_case_id": "CR-003",
+      "eligibility_score": 0.56,
+      "evidence_missing": true,
+      "evidence_missing_basis": "blocking marker in precheck_note",
+      "raw_approval_status": "Review",
+      "derived_decision": "Hold — No recommendation",
+      "derived_decision_basis": "eligibility_score >= 0.65 and evidence_missing = false",
+      "divergence_id": "DIV-001"
+    },
+    {
+      "credit_case_id": "CR-004",
+      "eligibility_score": 0.78,
+      "evidence_missing": false,
+      "evidence_missing_basis": "blocking marker in precheck_note",
+      "raw_approval_status": "Review",
+      "derived_decision": "Proceed to recommendation",
+      "derived_decision_basis": "eligibility_score >= 0.65 and evidence_missing = false",
+      "divergence_id": null
+    }
+  ],
+  "data_health": {
+    "checks": [
+      {
+        "check_id": "CHK-EVIDENCE-MISSING",
+        "subject_id": "CR-003",
+        "status": "matched",
+        "derived_value": true,
+        "reference_value": true,
+        "source": "10_CREDIT_PROFILE ↔ 14_ALERTS",
+        "message": "Blocking precheck note agrees with the independent missing-document alert."
+      },
+      {
+        "check_id": "CHK-MARGIN",
+        "subject_id": "CON-002",
+        "status": "matched",
+        "derived_value": true,
+        "reference_value": true,
+        "source": "04_CONTRACTS ↔ 06_ORDERS ↔ 14_ALERTS",
+        "message": "Contract margin below target agrees with the order-level margin alert."
+      },
+      {
+        "check_id": "CHK-CASHFLOW",
+        "subject_id": "2026-07",
+        "status": "matched",
+        "derived_value": true,
+        "reference_value": true,
+        "source": "09_CASHFLOW ↔ 14_ALERTS",
+        "message": "Derived reserve breach agrees with the cashflow-shortage alert."
+      },
+      {
+        "check_id": "CHK-TRANSACTION-CLUSTER",
+        "subject_id": "TXN-006, TXN-007",
+        "status": "matched",
+        "derived_value": ["TXN-006", "TXN-007"],
+        "reference_value": ["TXN-006", "TXN-007"],
+        "source": "08_BANK_TXN ↔ 14_ALERTS",
+        "message": "Transactions at or above RR-001's threshold match the alert cluster."
+      },
+      {
+        "check_id": "CHK-CONTRACT-SERVICE",
+        "subject_id": "CON-004",
+        "status": "matched",
+        "derived_value": true,
+        "reference_value": "service_list_price_vnd=4200000000",
+        "source": "04_CONTRACTS ↔ 06_ORDERS ↔ 05_PRODUCTS",
+        "message": "The ordered service price matches contract value; this confirms value alignment, not delivery-capacity risk."
+      },
+      {
+        "check_id": "DIV-001",
+        "subject_id": "CR-003",
+        "status": "divergence",
+        "derived_value": "Hold — No recommendation",
+        "reference_value": "Review",
+        "source": "DT-2 resolver ↔ 10_CREDIT_PROFILE ↔ 14_ALERTS",
+        "message": "The resolver holds the case because evidence is missing and eligibility is below policy, while the source approval_status remains Review."
+      }
+    ],
+    "matched_count": 5,
+    "divergence_count": 1,
+    "not_checked_count": 0
+  },
+  "issues": []
+}
