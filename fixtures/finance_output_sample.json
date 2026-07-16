@@ -15,7 +15,7 @@
         "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
         "breach": true,
         "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
-        "severity": "High"
+        "severity": "Critical"
       },
       {
         "month": "2026-07",
@@ -29,7 +29,7 @@
         "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
         "breach": true,
         "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
-        "severity": "High"
+        "severity": "Critical"
       },
       {
         "month": "2026-08",
@@ -43,7 +43,7 @@
         "funding_need_basis": "expected_cash_out_vnd + cash_reserve_minimum_vnd - expected_cash_in_vnd",
         "breach": true,
         "breach_basis": "closing_cash_vnd < cash_reserve_minimum_vnd",
-        "severity": "High"
+        "severity": "Critical"
       },
       {
         "month": "2026-09",
@@ -97,5 +97,292 @@
   },
   "open_receivables_vnd": 635000000,
   "open_receivables_basis": "sum(invoice_amount_vnd where status = Open)",
+  "source_audit": {
+    "row_counts": {
+      "04_CONTRACTS": 5,
+      "09_CASHFLOW": 6,
+      "07_INVOICES": 7,
+      "08_BANK_TXN": 10,
+      "13_RISK_RULES": 7,
+      "14_ALERTS": 5,
+      "10_CREDIT_PROFILE": 4,
+      "11_BANK_PRODUCTS": 8,
+      "02_OPC_PROFILE": 13,
+      "03_CUSTOMERS": 8,
+      "05_PRODUCTS": 5,
+      "06_ORDERS": 10,
+      "20_DATA_CLASS": 6,
+      "21_MASKING_EXAMPLES": 5
+    },
+    "loaded_sheets": [
+      "04_CONTRACTS",
+      "09_CASHFLOW",
+      "07_INVOICES",
+      "08_BANK_TXN",
+      "13_RISK_RULES",
+      "14_ALERTS",
+      "10_CREDIT_PROFILE",
+      "11_BANK_PRODUCTS",
+      "02_OPC_PROFILE",
+      "03_CUSTOMERS",
+      "05_PRODUCTS",
+      "06_ORDERS",
+      "20_DATA_CLASS",
+      "21_MASKING_EXAMPLES"
+    ],
+    "missing_sheets": [],
+    "core_complete": true
+  },
+  "rule_snapshot": {
+    "transaction_risk_threshold": 85,
+    "margin_threshold": 0.28,
+    "governance_amount_threshold_vnd": 300000000,
+    "credit_min_eligibility_score": 0.65,
+    "late_delivery_days_threshold": 7,
+    "applied_rules": [
+      {
+        "rule_id": "RR-001",
+        "operator": ">=",
+        "threshold": 85,
+        "trigger_condition": "transaction_risk_score >= 85",
+        "severity": "Critical",
+        "required_action": "Temporarily hold transaction and require founder approval",
+        "source": "13_RISK_RULES"
+      },
+      {
+        "rule_id": "RR-003",
+        "operator": "<",
+        "threshold": 0.28,
+        "trigger_condition": "gross_margin < 0.28",
+        "severity": "Medium",
+        "required_action": "Flag pricing/cost review",
+        "source": "13_RISK_RULES"
+      },
+      {
+        "rule_id": "RR-005",
+        "operator": ">",
+        "threshold": 300000000,
+        "trigger_condition": "requested_amount > 300000000",
+        "severity": "High",
+        "required_action": "Human approval required",
+        "source": "13_RISK_RULES"
+      },
+      {
+        "rule_id": "RR-006",
+        "operator": "<",
+        "threshold": 0.65,
+        "trigger_condition": "confidence_score < 0.65",
+        "severity": "Medium",
+        "required_action": "Ask for missing data or provide no-recommendation",
+        "source": "13_RISK_RULES"
+      },
+      {
+        "rule_id": "RR-007",
+        "operator": ">",
+        "threshold": 7,
+        "trigger_condition": "delivery_delay_days > 7",
+        "severity": "High",
+        "required_action": "Escalate operations plan and penalty exposure",
+        "source": "13_RISK_RULES"
+      }
+    ],
+    "issues": []
+  },
+  "receivable_aging": {
+    "paid_invoices_total_vnd": 45000000,
+    "open_invoices_total_vnd": 635000000,
+    "not_issued_invoices_total_vnd": 2760000000,
+    "priority_invoices": [
+      {
+        "invoice_id": "INV-004",
+        "customer_id": "CUS-004",
+        "invoice_amount_vnd": 310000000,
+        "payment_reliability": 0.71,
+        "priority_rank": 1,
+        "risk_rank": 2
+      },
+      {
+        "invoice_id": "INV-002",
+        "customer_id": "CUS-002",
+        "invoice_amount_vnd": 280000000,
+        "payment_reliability": 0.64,
+        "priority_rank": 2,
+        "risk_rank": 1
+      },
+      {
+        "invoice_id": "INV-003",
+        "customer_id": "CUS-001",
+        "invoice_amount_vnd": 45000000,
+        "payment_reliability": 0.78,
+        "priority_rank": 3,
+        "risk_rank": 3
+      }
+    ],
+    "high_risk_invoice_id": "INV-002",
+    "critical_dependency_invoice_id": "INV-005",
+    "critical_dependency_contract_id": "CON-004",
+    "critical_dependency_basis": "largest Not issued invoice; contract resolved through 06_ORDERS"
+  },
+  "margin_analysis": [
+    {
+      "contract_id": "CON-001",
+      "contract_value_vnd": 720000000,
+      "gross_margin": 0.3,
+      "target_margin": 0.28,
+      "margin_gap": 0.02,
+      "gross_profit_vnd": 216000000,
+      "warning": false,
+      "rule_id": "RR-003",
+      "margin_basis": "gross_margin < RR-003 threshold"
+    },
+    {
+      "contract_id": "CON-002",
+      "contract_value_vnd": 980000000,
+      "gross_margin": 0.26,
+      "target_margin": 0.28,
+      "margin_gap": -0.02,
+      "gross_profit_vnd": 254800000,
+      "warning": true,
+      "rule_id": "RR-003",
+      "margin_basis": "gross_margin < RR-003 threshold"
+    },
+    {
+      "contract_id": "CON-003",
+      "contract_value_vnd": 1250000000,
+      "gross_margin": 0.31,
+      "target_margin": 0.28,
+      "margin_gap": 0.03,
+      "gross_profit_vnd": 387500000,
+      "warning": false,
+      "rule_id": "RR-003",
+      "margin_basis": "gross_margin < RR-003 threshold"
+    },
+    {
+      "contract_id": "CON-004",
+      "contract_value_vnd": 4200000000,
+      "gross_margin": 0.24,
+      "target_margin": 0.28,
+      "margin_gap": -0.04,
+      "gross_profit_vnd": 1008000000,
+      "warning": true,
+      "rule_id": "RR-003",
+      "margin_basis": "gross_margin < RR-003 threshold"
+    },
+    {
+      "contract_id": "CON-005",
+      "contract_value_vnd": 1850000000,
+      "gross_margin": 0.29,
+      "target_margin": 0.28,
+      "margin_gap": 0.01,
+      "gross_profit_vnd": 536500000,
+      "warning": false,
+      "rule_id": "RR-003",
+      "margin_basis": "gross_margin < RR-003 threshold"
+    }
+  ],
+  "credit_candidates": [
+    {
+      "credit_case_id": "CR-004",
+      "request_type": "Micro working capital for local rollout",
+      "requested_amount_vnd": 220000000,
+      "eligibility_score": 0.78,
+      "priority_rank": 1,
+      "candidate_status": "candidate",
+      "precheck_note": "Good fit for cooperative network pilot",
+      "evidence_missing": false,
+      "human_approval_required": false,
+      "rule_ids": []
+    },
+    {
+      "credit_case_id": "CR-001",
+      "request_type": "Working capital line",
+      "requested_amount_vnd": 950000000,
+      "eligibility_score": 0.71,
+      "priority_rank": 2,
+      "candidate_status": "candidate",
+      "precheck_note": "Need receivable aging evidence",
+      "evidence_missing": false,
+      "human_approval_required": true,
+      "rule_ids": [
+        "RR-005"
+      ]
+    },
+    {
+      "credit_case_id": "CR-002",
+      "request_type": "Performance bond",
+      "requested_amount_vnd": 420000000,
+      "eligibility_score": 0.63,
+      "priority_rank": 3,
+      "candidate_status": "borderline",
+      "precheck_note": "Acceptable if contract signed and cashflow buffer confirmed",
+      "evidence_missing": false,
+      "human_approval_required": true,
+      "rule_ids": [
+        "RR-005",
+        "RR-006"
+      ]
+    },
+    {
+      "credit_case_id": "CR-003",
+      "request_type": "Trade finance/LC support",
+      "requested_amount_vnd": 650000000,
+      "eligibility_score": 0.56,
+      "priority_rank": null,
+      "candidate_status": "hold",
+      "precheck_note": "Missing supplier confirmation",
+      "evidence_missing": true,
+      "human_approval_required": true,
+      "rule_ids": [
+        "RR-005",
+        "RR-006"
+      ]
+    }
+  ],
+  "credit_plan": {
+    "funding_target_vnd": 1190000000,
+    "funding_target_basis": "worst_month_funding_need_vnd",
+    "priority_bridge_credit_case_ids": [
+      "CR-004",
+      "CR-001"
+    ],
+    "priority_bridge_amount_vnd": 1170000000,
+    "priority_bridge_shortfall_vnd": 20000000,
+    "priority_bridge_basis": "top eligible candidates until closest non-exceeding funding target",
+    "decision_package_credit_case_ids": [
+      "CR-001",
+      "CR-002"
+    ],
+    "decision_package_total_ask_vnd": 1370000000,
+    "decision_package_basis": "main working capital line + performance bond",
+    "held_credit_case_ids": [
+      "CR-003"
+    ]
+  },
+  "d5_handoff": {
+    "funding_gap_by_month_vnd": {
+      "2026-06": 732000000,
+      "2026-07": 1190000000,
+      "2026-08": 1010000000,
+      "2026-09": -170000000,
+      "2026-10": 390000000,
+      "2026-11": 250000000
+    },
+    "worst_month": "2026-07",
+    "worst_month_basis": "funding_need",
+    "open_invoices_total_vnd": 635000000,
+    "high_risk_invoice_id": "INV-002",
+    "critical_dependency_invoice_id": "INV-005",
+    "margin_warning_contract_ids": [
+      "CON-002",
+      "CON-004"
+    ],
+    "credit_candidate_ids": [
+      "CR-004",
+      "CR-001",
+      "CR-002"
+    ],
+    "priority_bridge_amount_vnd": 1170000000,
+    "decision_package_total_ask_vnd": 1370000000
+  },
   "issues": []
 }

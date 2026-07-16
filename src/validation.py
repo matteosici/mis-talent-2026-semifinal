@@ -20,6 +20,15 @@ from .resolvers import (
     rank_open_invoices,
     resolve_execution_feasibility,
 )
+from .risk import (
+    analyze_transaction_risk,
+    build_execution_risks,
+    build_governance_flags,
+    build_report_safe_handling_notes,
+    build_risk_handoff,
+)
+from .rules import resolve_business_rules
+from .team_pack import audit_ds1_sources
 
 
 Record = Mapping[str, Any]
@@ -89,6 +98,10 @@ def _not_checked(
 def build_data_health_report(
     team_pack: Mapping[str, Sequence[Record]], policy: PolicyConfig
 ) -> DataHealthReport:
+    rule_snapshot = resolve_business_rules(team_pack.get("13_RISK_RULES", []), policy)
+    effective_policy = policy.model_copy(
+        update={"credit_min_eligibility_score": rule_snapshot.credit_min_eligibility_score}
+    )
     alerts = team_pack.get("14_ALERTS", [])
     credit_cases = team_pack.get("10_CREDIT_PROFILE", [])
     checks: list[DataHealthCheck] = []
@@ -143,7 +156,9 @@ def build_data_health_report(
             )
         )
     else:
-        margin_warning = float(margin_contract["gross_margin"]) < 0.28
+        margin_warning = (
+            float(margin_contract["gross_margin"]) < rule_snapshot.margin_threshold
+        )
         checks.append(
             DataHealthCheck(
                 check_id="CHK-MARGIN",
@@ -199,7 +214,8 @@ def build_data_health_report(
     derived_txn_ids = sorted(
         str(txn["txn_id"])
         for txn in team_pack.get("08_BANK_TXN", [])
-        if float(txn["transaction_risk_score"]) >= 85
+        if float(txn["transaction_risk_score"])
+        >= rule_snapshot.transaction_risk_threshold
     )
     referenced_txn_ids = sorted(
         part.strip()
@@ -274,7 +290,7 @@ def build_data_health_report(
             )
         )
 
-    assessments = derive_credit_assessments(credit_cases, policy)
+    assessments = derive_credit_assessments(credit_cases, effective_policy)
     for divergence in (item for item in assessments if item.divergence_id is not None):
         checks.append(
             DataHealthCheck(
@@ -304,6 +320,11 @@ def build_risk_output(
     policy: PolicyConfig,
     source_workbook: str,
 ) -> RiskOutput:
+    rule_snapshot = resolve_business_rules(team_pack.get("13_RISK_RULES", []), policy)
+    effective_policy = policy.model_copy(
+        update={"credit_min_eligibility_score": rule_snapshot.credit_min_eligibility_score}
+    )
+    source_audit = audit_ds1_sources(dict(team_pack))
     invoice_priority, high_risk, issues = rank_open_invoices(
         team_pack.get("07_INVOICES", []), team_pack.get("03_CUSTOMERS", [])
     )
@@ -322,19 +343,66 @@ def build_risk_output(
             contract,
             team_pack.get("06_ORDERS", []),
             team_pack.get("05_PRODUCTS", []),
-            policy,
+            effective_policy,
         )
         for contract in contracts
     ]
     issues.extend(issue for result in execution for issue in result.issues)
+    issues.extend(rule_snapshot.issues)
+    for sheet in source_audit.missing_sheets:
+        issues.append(
+            ValidationIssue(
+                code="DS1_SOURCE_MISSING",
+                record_id=sheet,
+                message=f"Required DS1 source sheet {sheet} is missing.",
+            )
+        )
+
+    transaction_findings, transaction_clusters = analyze_transaction_risk(
+        team_pack.get("08_BANK_TXN", []),
+        team_pack.get("14_ALERTS", []),
+        rule_snapshot,
+        team_pack.get("20_DATA_CLASS", []),
+        team_pack.get("21_MASKING_EXAMPLES", []),
+    )
+    governance_flags, credit_risk_flags = build_governance_flags(
+        team_pack.get("10_CREDIT_PROFILE", []), rule_snapshot, effective_policy
+    )
+    execution_risks = build_execution_risks(
+        team_pack.get("06_ORDERS", []), rule_snapshot, effective_policy
+    )
+    risky_txn_ids = {item.txn_id for item in transaction_findings}
+    risky_rows = [
+        row
+        for row in team_pack.get("08_BANK_TXN", [])
+        if str(row.get("txn_id")) in risky_txn_ids
+    ]
+    safe_notes = build_report_safe_handling_notes(team_pack, risky_rows)
+    handoff = build_risk_handoff(
+        transaction_clusters,
+        governance_flags,
+        credit_risk_flags,
+        execution_risks,
+        safe_notes,
+    )
     return RiskOutput(
         source_workbook=source_workbook,
         invoice_priority=invoice_priority,
         high_risk_invoice_id=high_risk,
         execution_feasibility=execution,
         credit_assessments=derive_credit_assessments(
-            team_pack.get("10_CREDIT_PROFILE", []), policy
+            team_pack.get("10_CREDIT_PROFILE", []), effective_policy
         ),
-        data_health=build_data_health_report(team_pack, policy),
+        data_health=build_data_health_report(team_pack, effective_policy),
+        source_audit=source_audit,
+        rule_snapshot=rule_snapshot,
+        transaction_findings=transaction_findings,
+        transaction_clusters=transaction_clusters,
+        governance_flags=governance_flags,
+        credit_risk_flags=credit_risk_flags,
+        execution_risks=execution_risks,
+        safe_handling_notes=safe_notes,
+        financial_flow_paused=handoff.financial_flow_paused,
+        d5_handoff=handoff,
         issues=issues,
     )

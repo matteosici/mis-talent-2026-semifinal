@@ -33,7 +33,9 @@
   "execution_feasibility": [
     {
       "contract_id": "CON-004",
-      "service_ids": ["SVC-004"],
+      "service_ids": [
+        "SVC-004"
+      ],
       "matched_service_list_price_vnd": 4200000000,
       "execution_feasible": true,
       "execution_feasibility_basis": "sum_unique_service_list_price_vnd matches contract_value_vnd",
@@ -57,7 +59,7 @@
       "evidence_missing": false,
       "evidence_missing_basis": "blocking marker in precheck_note",
       "raw_approval_status": "Human approval required",
-      "derived_decision": "Hold — No recommendation",
+      "derived_decision": "Candidate — Borderline",
       "derived_decision_basis": "eligibility_score >= 0.65 and evidence_missing = false",
       "divergence_id": null
     },
@@ -115,8 +117,14 @@
         "check_id": "CHK-TRANSACTION-CLUSTER",
         "subject_id": "TXN-006, TXN-007",
         "status": "matched",
-        "derived_value": ["TXN-006", "TXN-007"],
-        "reference_value": ["TXN-006", "TXN-007"],
+        "derived_value": [
+          "TXN-006",
+          "TXN-007"
+        ],
+        "reference_value": [
+          "TXN-006",
+          "TXN-007"
+        ],
         "source": "08_BANK_TXN ↔ 14_ALERTS",
         "message": "Transactions at or above RR-001's threshold match the alert cluster."
       },
@@ -142,6 +150,318 @@
     "matched_count": 5,
     "divergence_count": 1,
     "not_checked_count": 0
+  },
+  "source_audit": {
+    "row_counts": {
+      "04_CONTRACTS": 5,
+      "09_CASHFLOW": 6,
+      "07_INVOICES": 7,
+      "08_BANK_TXN": 10,
+      "13_RISK_RULES": 7,
+      "14_ALERTS": 5,
+      "10_CREDIT_PROFILE": 4,
+      "11_BANK_PRODUCTS": 8,
+      "02_OPC_PROFILE": 13,
+      "03_CUSTOMERS": 8,
+      "05_PRODUCTS": 5,
+      "06_ORDERS": 10,
+      "20_DATA_CLASS": 6,
+      "21_MASKING_EXAMPLES": 5
+    },
+    "loaded_sheets": [
+      "04_CONTRACTS",
+      "09_CASHFLOW",
+      "07_INVOICES",
+      "08_BANK_TXN",
+      "13_RISK_RULES",
+      "14_ALERTS",
+      "10_CREDIT_PROFILE",
+      "11_BANK_PRODUCTS",
+      "02_OPC_PROFILE",
+      "03_CUSTOMERS",
+      "05_PRODUCTS",
+      "06_ORDERS",
+      "20_DATA_CLASS",
+      "21_MASKING_EXAMPLES"
+    ],
+    "missing_sheets": [],
+    "core_complete": true
+  },
+  "rule_snapshot": {
+    "transaction_risk_threshold": 85,
+    "margin_threshold": 0.28,
+    "governance_amount_threshold_vnd": 300000000,
+    "credit_min_eligibility_score": 0.65,
+    "late_delivery_days_threshold": 7,
+    "applied_rules": [
+      {
+        "rule_id": "RR-001",
+        "operator": ">=",
+        "threshold": 85,
+        "trigger_condition": "transaction_risk_score >= 85",
+        "severity": "Critical",
+        "required_action": "Temporarily hold transaction and require founder approval",
+        "source": "13_RISK_RULES"
+      },
+      {
+        "rule_id": "RR-003",
+        "operator": "<",
+        "threshold": 0.28,
+        "trigger_condition": "gross_margin < 0.28",
+        "severity": "Medium",
+        "required_action": "Flag pricing/cost review",
+        "source": "13_RISK_RULES"
+      },
+      {
+        "rule_id": "RR-005",
+        "operator": ">",
+        "threshold": 300000000,
+        "trigger_condition": "requested_amount > 300000000",
+        "severity": "High",
+        "required_action": "Human approval required",
+        "source": "13_RISK_RULES"
+      },
+      {
+        "rule_id": "RR-006",
+        "operator": "<",
+        "threshold": 0.65,
+        "trigger_condition": "confidence_score < 0.65",
+        "severity": "Medium",
+        "required_action": "Ask for missing data or provide no-recommendation",
+        "source": "13_RISK_RULES"
+      },
+      {
+        "rule_id": "RR-007",
+        "operator": ">",
+        "threshold": 7,
+        "trigger_condition": "delivery_delay_days > 7",
+        "severity": "High",
+        "required_action": "Escalate operations plan and penalty exposure",
+        "source": "13_RISK_RULES"
+      }
+    ],
+    "issues": []
+  },
+  "transaction_findings": [
+    {
+      "txn_id": "TXN-006",
+      "txn_date": "2026-06-11",
+      "direction": "Debit",
+      "amount_vnd": -86000000,
+      "exposure_vnd": 86000000,
+      "risk_score": 88.0,
+      "threshold": 85.0,
+      "rule_id": "RR-001",
+      "severity": "Critical",
+      "action": "Temporarily hold transaction and require founder approval",
+      "account_token": "TOK-ACC-7D20",
+      "counterparty_token": "TOK-CP-7AD5",
+      "normalized_pattern": "unknown ecommerce charge"
+    },
+    {
+      "txn_id": "TXN-007",
+      "txn_date": "2026-06-11",
+      "direction": "Debit",
+      "amount_vnd": -92000000,
+      "exposure_vnd": 92000000,
+      "risk_score": 91.0,
+      "threshold": 85.0,
+      "rule_id": "RR-001",
+      "severity": "Critical",
+      "action": "Temporarily hold transaction and require founder approval",
+      "account_token": "TOK-ACC-7D20",
+      "counterparty_token": "TOK-CP-7AD5",
+      "normalized_pattern": "unknown ecommerce charge"
+    }
+  ],
+  "transaction_clusters": [
+    {
+      "cluster_id": "CLUSTER-001",
+      "txn_ids": [
+        "TXN-006",
+        "TXN-007"
+      ],
+      "matched_criteria": [
+        "same_counterparty",
+        "same_day",
+        "same_pattern"
+      ],
+      "criteria_match_count": 3,
+      "total_exposure_vnd": 178000000,
+      "severity": "Critical",
+      "alert_id": "AL-001",
+      "alert_consistent": true,
+      "founder_approval_required": true,
+      "hold_payload": {
+        "txn_ids": [
+          "TXN-006",
+          "TXN-007"
+        ],
+        "action": "temporary_hold",
+        "approver": "founder_confirmation_required"
+      }
+    }
+  ],
+  "governance_flags": [
+    {
+      "record_id": "CR-001",
+      "record_type": "credit_case",
+      "amount_vnd": 950000000,
+      "threshold_vnd": 300000000,
+      "rule_id": "RR-005",
+      "human_approval_required": true,
+      "blocked_by_missing_evidence": false,
+      "reason": "CR-001 requested_amount_vnd 950000000 exceeds RR-005 threshold 300000000."
+    },
+    {
+      "record_id": "CR-002",
+      "record_type": "credit_case",
+      "amount_vnd": 420000000,
+      "threshold_vnd": 300000000,
+      "rule_id": "RR-005",
+      "human_approval_required": true,
+      "blocked_by_missing_evidence": false,
+      "reason": "CR-002 requested_amount_vnd 420000000 exceeds RR-005 threshold 300000000."
+    },
+    {
+      "record_id": "CR-003",
+      "record_type": "credit_case",
+      "amount_vnd": 650000000,
+      "threshold_vnd": 300000000,
+      "rule_id": "RR-005",
+      "human_approval_required": true,
+      "blocked_by_missing_evidence": true,
+      "reason": "CR-003 requested_amount_vnd 650000000 exceeds RR-005 threshold 300000000."
+    }
+  ],
+  "credit_risk_flags": [
+    {
+      "credit_case_id": "CR-002",
+      "eligibility_score": 0.63,
+      "threshold": 0.65,
+      "rule_id": "RR-006",
+      "evidence_missing": false,
+      "disposition": "borderline"
+    },
+    {
+      "credit_case_id": "CR-003",
+      "eligibility_score": 0.56,
+      "threshold": 0.65,
+      "rule_id": "RR-006",
+      "evidence_missing": true,
+      "disposition": "hold"
+    }
+  ],
+  "execution_risks": [
+    {
+      "order_id": "ORD-004",
+      "contract_id": "CON-003",
+      "status": "At risk",
+      "delivery_note": "Resource bottleneck",
+      "order_revenue_vnd": 310000000,
+      "risk_markers": [
+        "At risk",
+        "resource bottleneck"
+      ],
+      "systemic": true,
+      "late_delivery_days_threshold": 7,
+      "penalty_rate": 0.015,
+      "potential_penalty_vnd_per_day": 4650000,
+      "penalty_basis": "order_revenue_vnd * late_delivery_penalty_rate",
+      "rule_id": "RR-007"
+    },
+    {
+      "order_id": "ORD-008",
+      "contract_id": "CON-003",
+      "status": "Planned",
+      "delivery_note": "Needs extra contractor",
+      "order_revenue_vnd": 420000000,
+      "risk_markers": [
+        "needs extra contractor"
+      ],
+      "systemic": true,
+      "late_delivery_days_threshold": 7,
+      "penalty_rate": 0.015,
+      "potential_penalty_vnd_per_day": 6300000,
+      "penalty_basis": "order_revenue_vnd * late_delivery_penalty_rate",
+      "rule_id": "RR-007"
+    }
+  ],
+  "safe_handling_notes": [
+    {
+      "field_name": "customer_id",
+      "classification": "restricted",
+      "handling_rule": "Tokenize deterministically",
+      "masked_value": "CUS-***005",
+      "tokenized_value": "TOK-CUS-A91F",
+      "source": "20_DATA_CLASS + 21_MASKING_EXAMPLES"
+    },
+    {
+      "field_name": "account_id",
+      "classification": "restricted",
+      "handling_rule": "Tokenize deterministically",
+      "masked_value": "OPC_****",
+      "tokenized_value": "TOK-ACC-7D20",
+      "source": "20_DATA_CLASS + 21_MASKING_EXAMPLES"
+    },
+    {
+      "field_name": "counterparty_id",
+      "classification": "restricted",
+      "handling_rule": "Tokenize deterministically",
+      "masked_value": "UNK-***COM",
+      "tokenized_value": "TOK-CP-7AD5",
+      "source": "20_DATA_CLASS + 21_MASKING_EXAMPLES"
+    },
+    {
+      "field_name": "contract_value",
+      "classification": "confidential",
+      "handling_rule": "Round/aggregate or encrypt/tokenize",
+      "masked_value": "4.2B band",
+      "tokenized_value": null,
+      "source": "20_DATA_CLASS + 21_MASKING_EXAMPLES"
+    },
+    {
+      "field_name": "access_token",
+      "classification": "restricted-secret",
+      "handling_rule": "Vault reference only",
+      "masked_value": "[SECRET]",
+      "tokenized_value": "vault://sandbox/token",
+      "source": "20_DATA_CLASS + 21_MASKING_EXAMPLES"
+    }
+  ],
+  "financial_flow_paused": true,
+  "d5_handoff": {
+    "transaction_hold": {
+      "txn_ids": [
+        "TXN-006",
+        "TXN-007"
+      ],
+      "action": "temporary_hold",
+      "approver": "founder_confirmation_required"
+    },
+    "transaction_hold_amount_vnd": 178000000,
+    "transaction_hold_severity": "Critical",
+    "approval_requirement_record_ids": [
+      "CR-001",
+      "CR-002",
+      "CR-003"
+    ],
+    "credit_risk_record_ids": [
+      "CR-002",
+      "CR-003"
+    ],
+    "execution_risk_order_ids": [
+      "ORD-004",
+      "ORD-008"
+    ],
+    "safe_handling_fields": [
+      "customer_id",
+      "account_id",
+      "counterparty_id",
+      "contract_value",
+      "access_token"
+    ],
+    "financial_flow_paused": true
   },
   "issues": []
 }

@@ -5,7 +5,7 @@ Controlling source: `MISTalent2026_OPC_AgenticAI_TeamPack_v2-1.xlsx`. Contract s
 | Gap | Evidence in Team Pack | Resolution | Regression test | Status |
 | --- | --- | --- | --- | --- |
 | 1. `service_id` absent from `04_CONTRACTS` | `06_ORDERS` contains `contract_id` and `service_id`; CON-004 maps to SVC-004 | Join through orders; no order returns `execution_feasible=null` plus `CONTRACT_ORDERS_NOT_FOUND`, never `False` | `test_feasibility_joins_via_orders`, `test_contract_without_orders_returns_none` | Closed |
-| 2. Worst month Jun vs Jul | Reserve gap max: Jun 710M; funding need max: Jul 1,190M | Emit both metrics and read headline basis from YAML. Default `funding_need`; changing policy does not change fields | `test_worst_month_by_funding_need`, `test_worst_month_policy_flip` | Shape closed; policy confirmation pending |
+| 2. Worst month Jun vs Jul | Reserve gap max: Jun 710M; funding need max: Jul 1,190M | Emit both metrics and read headline basis from YAML. Default `funding_need`; changing policy does not change fields | `test_worst_month_by_funding_need`, `test_worst_month_policy_flip` | Closed — report confirms `funding_need` |
 | 3. `gap_magnitude` ambiguous | Jul reserve gap 680M differs from funding need 1,190M | Remove ambiguous name; use `_vnd` and explicit `_basis` | `test_both_gap_metrics_are_emitted`, fixture contract test | Closed |
 | 4. `evidence_missing` absent | Only CR-003 note contains a blocking marker; AL-004 independently confirms missing document | Marker rule: missing/not provided/absent/thiếu/chưa có; the word `evidence` alone is not blocking | `test_evidence_missing_only_cr003`, `test_cr001_evidence_word_is_not_blocking` | Closed |
 | 5. Invoice “rank” mixed two axes | Open amounts: INV-004 310M, INV-002 280M, INV-003 45M; reliabilities: 0.71, 0.64, 0.78 | Separate `priority_rank` (amount desc) and `high_risk_invoice_id` (minimum known reliability). Remove “due_date × reliability” | `test_priority_by_amount`, `test_high_risk_by_reliability` | Closed |
@@ -20,3 +20,7 @@ Five independent checks match: CR-003 missing evidence, CON-002 margin pressure,
 ## Metric correction recorded during implementation
 
 The earlier number list mixed grains. 635M is the total of three Open invoices, not a monthly cashflow metric. The six monthly `funding_need_vnd` values are 732M, 1,190M, 1,010M, -170M, 390M and 250M. This correction is locked by the finance fixture.
+
+## DS1 scope revision
+
+The eight gaps remain closed. The backend now also implements the report-level D1 step 3/4 and D5 handoffs: rule-driven margin and RR-001 thresholds, receivable aging, credit candidate ordering/bridge values, transaction clustering, RR-005/RR-006 governance, execution penalty exposure, masking/tokenization and a paused financial flow while the Critical hold is unresolved. See `DS1_SCOPE_MATRIX.md`.

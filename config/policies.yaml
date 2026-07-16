@@ -10,3 +10,10 @@ evidence_missing_markers:
 credit_min_eligibility_score: 0.65
 reserve_breach_severity: High
 service_value_tolerance_vnd: 0
+transaction_risk_threshold: 85
+margin_threshold: 0.28
+governance_amount_threshold_vnd: 300000000
+late_delivery_days_threshold: 7
+late_delivery_penalty_rate: 0.015
+high_gap_threshold_vnd: 200000000
+critical_gap_threshold_vnd: 500000000
