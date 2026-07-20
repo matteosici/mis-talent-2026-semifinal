@@ -18,10 +18,10 @@ TRACE_ID = "TRACE-2026-CON004"
 DECISION_VERSION = "DEC-v1"
 
 BANK_PRODUCT_MAPPING = {
-    "CR-004": {"bank_product_id": "BANKPROD-006", "fit_status": "Fit", "collateral_vnd": 22_000_000, "note": "Best small bridge option; strong eligibility score."},
-    "CR-001": {"bank_product_id": "BANKPROD-004", "fit_status": "Pending", "collateral_vnd": 142_500_000, "note": "Working-capital line; needs receivable aging evidence."},
-    "CR-002": {"bank_product_id": "BANKPROD-002", "fit_status": "Pending", "collateral_vnd": 84_000_000, "note": "Performance bond; requires CON-004 signed and founder approval."},
-    "CR-003": {"bank_product_id": "BANKPROD-003", "fit_status": "Hold / Not fit", "collateral_vnd": 0, "note": "Blocked by missing supplier confirmation; do not recommend."},
+    "CR-004": {"bank_product_id": "BANKPROD-006", "fit_status": "Fit", "collateral_vnd": 22_000_000, "note": "Phương án bridge nhỏ phù hợp nhất; điểm đủ điều kiện tốt."},
+    "CR-001": {"bank_product_id": "BANKPROD-004", "fit_status": "Pending", "collateral_vnd": 142_500_000, "note": "Hạn mức vốn lưu động; cần bằng chứng tuổi nợ phải thu."},
+    "CR-002": {"bank_product_id": "BANKPROD-002", "fit_status": "Pending", "collateral_vnd": 84_000_000, "note": "Bảo lãnh thực hiện hợp đồng; cần CON-004 được ký và Founder phê duyệt."},
+    "CR-003": {"bank_product_id": "BANKPROD-003", "fit_status": "Tạm giữ / Không phù hợp", "collateral_vnd": 0, "note": "Bị chặn vì thiếu xác nhận nhà cung cấp; không khuyến nghị."},
 }
 
 
@@ -78,21 +78,21 @@ def _fallback_openai_result(backend: DS1BackendOutput) -> OpenAIResult:
     risk = backend.risk.d5_handoff
     return OpenAIResult(
         conflicts_detected=[{
-            "description": "Finance keeps CR-002 in the candidate list, while Risk flags RR-006 because eligibility 0.63 is below 0.65.",
-            "resolution_note": "Keep CR-002 as conditional; mark uncertainty and require founder approval instead of silently removing it.",
+            "description": "Finance vẫn giữ CR-002 trong danh sách candidate, trong khi Risk flag RR-006 vì eligibility 0.63 thấp hơn ngưỡng 0.65.",
+            "resolution_note": "Giữ CR-002 ở trạng thái có điều kiện, gắn uncertainty và yêu cầu Founder phê duyệt thay vì âm thầm loại bỏ.",
         }],
         conditions=[
-            "AP-1: Founder confirms temporary hold for TXN-006/TXN-007 before any financial submission.",
-            "AP-2: Founder approves CR-001 working-capital application of 950M VND.",
-            "AP-3: Founder approves CR-002 performance-bond application of 420M VND.",
-            "AP-4: Founder approves external submission to VietinBank after masking/tokenization.",
-            "AP-5: Founder makes the final CON-004 accept/reject/renegotiate decision.",
+            "AP-1: Founder xác nhận tạm giữ TXN-006/TXN-007 trước mọi thao tác gửi hồ sơ tài chính.",
+            "AP-2: Founder phê duyệt hồ sơ vốn lưu động CR-001 trị giá 950 triệu VND.",
+            "AP-3: Founder phê duyệt hồ sơ bảo lãnh thực hiện CR-002 trị giá 420 triệu VND.",
+            "AP-4: Founder phê duyệt gửi hồ sơ ra VietinBank sau khi dữ liệu đã được masking/tokenization.",
+            "AP-5: Founder ra quyết định cuối cùng cho CON-004: nhận, từ chối hoặc đàm phán lại.",
         ],
         rationale=(
-            "CON-004 should be conditionally recommended because the contract can unlock "
-            "1.008B VND gross profit and restore the September cash position, but the system "
-            f"must first resolve the {_money(risk.transaction_hold_amount_vnd)} suspicious transaction hold, "
-            f"approve the {_money(finance.decision_package_total_ask_vnd)} credit package, and keep CR-003 on hold until supplier confirmation arrives."
+            "Nên khuyến nghị có điều kiện với CON-004 vì hợp đồng có thể tạo ra "
+            "1.008B VND lợi nhuận gộp và giúp dòng tiền tháng 9 phục hồi, nhưng hệ thống "
+            f"phải xử lý trước {_money(risk.transaction_hold_amount_vnd)} giao dịch đáng ngờ đang chờ tạm giữ, "
+            f"phê duyệt {_money(finance.decision_package_total_ask_vnd)} gói tín dụng, đồng thời giữ CR-003 ở trạng thái tạm giữ cho tới khi có xác nhận nhà cung cấp."
         ),
         llm_meta={"model": os.getenv("OPENAI_MODEL", "gpt-4o"), "mode": "fallback", "confidence": 0.78, "response_id": None, "latency_ms": 0, "schema_validation": "PASSED"},
     )
@@ -150,11 +150,11 @@ def build_decision_card(
     finance = backend.finance.d5_handoff
     risk = backend.risk.d5_handoff
     approval_required = [
-        {"id": "AP-1", "description": "TXN-006/007 temporary hold", "amount": risk.transaction_hold_amount_vnd, "status": ap1_status, "blocks": ["AP-2", "AP-3", "AP-4", "AP-5"]},
-        {"id": "AP-2", "description": "CR-001 working-capital approval", "amount": 950_000_000, "status": "pending", "blocks": ["AP-5"]},
-        {"id": "AP-3", "description": "CR-002 performance-bond approval", "amount": 420_000_000, "status": "pending", "blocks": ["AP-5"]},
-        {"id": "AP-4", "description": "API-002 external submission approval", "amount": None, "status": "pending", "blocks": ["AP-5"]},
-        {"id": "AP-5", "description": "CON-004 acceptance / signing decision", "amount": 4_200_000_000, "status": "pending", "blocks": []},
+        {"id": "AP-1", "description": "Tạm giữ TXN-006/007", "amount": risk.transaction_hold_amount_vnd, "status": ap1_status, "blocks": ["AP-2", "AP-3", "AP-4", "AP-5"]},
+        {"id": "AP-2", "description": "Phê duyệt vốn lưu động CR-001", "amount": 950_000_000, "status": "pending", "blocks": ["AP-5"]},
+        {"id": "AP-3", "description": "Phê duyệt bảo lãnh thực hiện CR-002", "amount": 420_000_000, "status": "pending", "blocks": ["AP-5"]},
+        {"id": "AP-4", "description": "Phê duyệt gửi hồ sơ ngoài qua API-002", "amount": None, "status": "pending", "blocks": ["AP-5"]},
+        {"id": "AP-5", "description": "Quyết định nhận/ký CON-004", "amount": 4_200_000_000, "status": "pending", "blocks": []},
     ]
     return {
         "trace_id": TRACE_ID,
@@ -166,15 +166,16 @@ def build_decision_card(
         "recommendation": "CONDITIONAL_RECOMMEND",
         "financial_ask": {"breakdown": [{"credit_id": "CR-001", "amount": 950_000_000, "bank_product": "BANKPROD-004"}, {"credit_id": "CR-002", "amount": 420_000_000, "bank_product": "BANKPROD-002"}], "total": finance.decision_package_total_ask_vnd, "collateral_total": 248_500_000, "cost_estimate_per_period": 67_000_000},
         "bank_fit_matrix": bank_fit_matrix,
-        "risks_remaining": [{"description": "CR-002 eligibility 0.63 < 0.65", "rule_ref": "RR-006", "severity": "Medium"}, {"description": "ORD-004 At risk; penalty 4.65M VND/day if delay exceeds 7 days", "rule_ref": "RR-007", "severity": "High"}],
-        "missing_evidence": [{"description": "Supplier confirmation for CR-003/CON-005 is missing", "blocks": ["CR-003"]}],
-        "upside_if_conditions_met": {"gross_profit_vnd": 1_008_000_000, "recovery_month": "2026-09", "recovery_closing_cash_vnd": 350_000_000, "narrative": "OPC exits the cashflow vicious cycle; projected cash turns positive from September."},
+        "risks_remaining": [{"description": "CR-002 eligibility 0.63 < 0.65", "rule_ref": "RR-006", "severity": "Medium"}, {"description": "ORD-004 có rủi ro triển khai; phạt 4.65 triệu VND/ngày nếu trễ quá 7 ngày", "rule_ref": "RR-007", "severity": "High"}],
+        "missing_evidence": [{"description": "Thiếu xác nhận nhà cung cấp cho CR-003/CON-005", "blocks": ["CR-003"]}],
+        "upside_if_conditions_met": {"gross_profit_vnd": 1_008_000_000, "recovery_month": "2026-09", "recovery_closing_cash_vnd": 350_000_000, "narrative": "OPC thoát vòng lặp thiếu dòng tiền; dòng tiền dự phóng chuyển dương từ tháng 9."},
         "approval_required": approval_required,
         "masked_fields": ["customer_id", "account_id", "contract_value", "access_token"],
         "human_approval_id": human_approval_id,
         "conflicts_detected": llm.conflicts_detected,
-        "critical_flags": [] if ap1_status == "approved" else ["TXN-006/007 unresolved temporary hold"],
+        "critical_flags": [] if ap1_status == "approved" else ["TXN-006/007 chưa được xác nhận tạm giữ"],
         "conditions": llm.conditions,
         "rationale": llm.rationale,
         "llm_meta": llm.llm_meta,
     }
+
