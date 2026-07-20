@@ -3,3 +3,5 @@ openpyxl>=3.1,<4.0
 pydantic>=2.0,<3.0
 pytest>=8.0,<10.0
 PyYAML>=6.0,<7.0
+streamlit>=1.37,<2.0
+openai>=1.40,<2.0

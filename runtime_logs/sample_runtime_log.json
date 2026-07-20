@@ -1,0 +1,88 @@
+[
+  {
+    "timestamp": "2026-07-20T09:47:12+00:00",
+    "trace_id": "TRACE-2026-CON004",
+    "agent_name": "Finance & Data Agent",
+    "event_type": "observe",
+    "tool_or_api_id": "TEAM_PACK_EXCEL",
+    "request_id": "REQ-FIN-001",
+    "masked_fields": [],
+    "response_status": "8_core_sheets_loaded",
+    "retry_count": 0,
+    "human_approval_id": null,
+    "decision_version": "DEC-v1",
+    "safe_failure_reason": null
+  },
+  {
+    "timestamp": "2026-07-20T09:47:12+00:00",
+    "trace_id": "TRACE-2026-CON004",
+    "agent_name": "Risk & Compliance Agent",
+    "event_type": "reason",
+    "tool_or_api_id": "RR-001",
+    "request_id": "REQ-RISK-001",
+    "masked_fields": [
+      "account_id",
+      "counterparty_id"
+    ],
+    "response_status": "critical_cluster_detected",
+    "retry_count": 0,
+    "human_approval_id": null,
+    "decision_version": "DEC-v1",
+    "safe_failure_reason": null
+  },
+  {
+    "timestamp": "2026-07-20T09:47:12+00:00",
+    "trace_id": "TRACE-2026-CON004",
+    "agent_name": "Founder",
+    "event_type": "approval",
+    "tool_or_api_id": "AP-1",
+    "request_id": "APR-001",
+    "masked_fields": [
+      "account_id",
+      "counterparty_id"
+    ],
+    "response_status": "approved_temporary_hold",
+    "retry_count": 0,
+    "human_approval_id": "APR-001",
+    "decision_version": "DEC-v1",
+    "safe_failure_reason": null
+  },
+  {
+    "timestamp": "2026-07-20T09:47:12+00:00",
+    "trace_id": "TRACE-2026-CON004",
+    "agent_name": "Decision & Partner Agent",
+    "event_type": "tool_call",
+    "tool_or_api_id": "OPENAI_DECISION_CARD",
+    "request_id": "REQ-LLM-FALLBACK",
+    "masked_fields": [
+      "customer_id",
+      "account_id",
+      "contract_value",
+      "access_token"
+    ],
+    "response_status": "fallback",
+    "retry_count": 0,
+    "human_approval_id": null,
+    "decision_version": "DEC-v1",
+    "safe_failure_reason": null
+  },
+  {
+    "timestamp": "2026-07-20T09:47:12+00:00",
+    "trace_id": "TRACE-2026-CON004",
+    "agent_name": "Decision & Partner Agent",
+    "event_type": "reflection",
+    "tool_or_api_id": "SCHEMA_VALIDATION",
+    "request_id": "REQ-DEC-001",
+    "masked_fields": [
+      "customer_id",
+      "account_id",
+      "contract_value",
+      "access_token"
+    ],
+    "response_status": "PASSED",
+    "retry_count": 0,
+    "human_approval_id": "APR-001",
+    "decision_version": "DEC-v1",
+    "safe_failure_reason": null
+  }
+]
