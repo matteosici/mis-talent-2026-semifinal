@@ -10,15 +10,25 @@ import pandas as pd
 import streamlit as st
 
 from src.agents import run_ds1_backend
-from src.decision_agent import build_decision_card
+from src.decision_agent import CREDIT_TO_API, build_decision_card, call_bank_api_mock
 from src.runtime_log import build_sample_runtime_log, write_json
-from src.team_pack import DEFAULT_WORKBOOK, load_team_pack
+from src.security import _stable_token
+from src.team_pack import DS1_CORE_SHEETS, DEFAULT_WORKBOOK, load_team_pack
 
 ROOT = Path(__file__).parent
 LOCAL_WORKBOOK = ROOT / DEFAULT_WORKBOOK
 EXTERNAL_V3_WORKBOOK = ROOT.parent / "MISTalent2026_OPC_AgenticAI_TeamPack_v3.xlsx"
 WORKBOOK = EXTERNAL_V3_WORKBOOK if EXTERNAL_V3_WORKBOOK.exists() else LOCAL_WORKBOOK
 POLICY = ROOT / "config" / "policies.yaml"
+
+STATE_LABELS = {
+    "BLOCKED_BY_AP1": "⛔ Bị chặn bởi AP-1",
+    "DECISION_READY": "Sẵn sàng ra quyết định",
+    "ACTIVE": "✓ Đã duyệt",
+    "REJECTED": "✕ Từ chối",
+    "NEED_MORE_INFORMATION": "Cần bổ sung thông tin",
+    "RENEGOTIATE": "Đàm phán lại",
+}
 
 st.set_page_config(page_title="Dashboard AI Agent OPC", layout="wide", page_icon="OPC")
 st.markdown(
@@ -89,6 +99,26 @@ def df_from_sheet(team_pack: dict[str, Any], sheet: str) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
+def _tokenize_df(frame: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    safe = frame.copy()
+    for column in columns:
+        if column in safe.columns:
+            safe[column] = safe[column].apply(
+                lambda value: (
+                    _stable_token(column, str(value))
+                    if pd.notna(value) and not str(value).startswith("TOK-")
+                    else value
+                )
+            )
+    return safe
+
+
+def _tokenize_record(record: dict[str, Any], columns: list[str]) -> dict[str, Any]:
+    if not record:
+        return {}
+    return _tokenize_df(pd.DataFrame([record]), columns).iloc[0].to_dict()
+
+
 def metric_card(label: str, value: str, delta: str | None = None, tone: str = "gray", warn: bool = False) -> None:
     delta_html = ""
     if delta:
@@ -121,8 +151,9 @@ orders_df = df_from_sheet(team_pack, "06_ORDERS")
 invoices_df = df_from_sheet(team_pack, "07_INVOICES")
 credit_df = df_from_sheet(team_pack, "10_CREDIT_PROFILE")
 bank_products_df = df_from_sheet(team_pack, "11_BANK_PRODUCTS")
-customer_df = df_from_sheet(team_pack, "03_CUSTOMERS")
-contract_ids = sorted(contracts_df["contract_id"].dropna().astype(str).tolist()) if "contract_id" in contracts_df else ["CON-004"]
+contract_ids = sorted(
+    item.contract_id for item in backend.finance.margin_analysis
+) or ["CON-004"]
 contract_choices = ["Tất cả hợp đồng", *contract_ids]
 default_contract = "CON-004" if "CON-004" in contract_ids else contract_ids[0]
 default_contract_index = contract_choices.index(default_contract)
@@ -136,6 +167,13 @@ if "human_approval_id" not in st.session_state:
     st.session_state.human_approval_id = None
 if "action_warning" not in st.session_state:
     st.session_state.action_warning = None
+if "action_toast" not in st.session_state:
+    st.session_state.action_toast = None
+if "bank_api_response" not in st.session_state:
+    st.session_state.bank_api_response = None
+if st.session_state.action_toast:
+    st.toast(st.session_state.action_toast)
+    st.session_state.action_toast = None
 
 st.sidebar.markdown("### Điều hướng")
 page = st.sidebar.radio("Màn hình", ["Tổng quan", "Chi tiết hợp đồng", "Bằng chứng hệ thống"], index=0)
@@ -221,15 +259,9 @@ def selected_contract_row(contract_id: str) -> dict[str, Any]:
 
 def selected_customer_name(contract_row: dict[str, Any]) -> str:
     customer_id = contract_row.get("customer_id")
-    if customer_df.empty or "customer_id" not in customer_df or not customer_id:
+    if not customer_id:
         return "không rõ"
-    rows = customer_df[customer_df["customer_id"].astype(str) == str(customer_id)]
-    if rows.empty:
-        return str(customer_id)
-    for col in ["customer_name", "name", "company_name"]:
-        if col in rows.columns:
-            return str(rows.iloc[0][col])
-    return str(customer_id)
+    return _stable_token("customer_id", str(customer_id))
 
 
 def related_orders(contract_id: str) -> pd.DataFrame:
@@ -281,7 +313,10 @@ def related_credit_cases(contract_id: str) -> pd.DataFrame:
         mask = mask | credit_df["credit_case_id"].astype(str).isin(["CR-003"])
     if "credit_case_id" in credit_df.columns and not mask.any():
         mask = mask | credit_df["credit_case_id"].astype(str).eq("CR-001")
-    return credit_df[mask].copy()
+    return _tokenize_df(
+        credit_df[mask].copy(),
+        ["company_id", "customer_id"],
+    )
 
 
 def contract_status(contract_id: str) -> tuple[str, str]:
@@ -298,24 +333,28 @@ def contract_status(contract_id: str) -> tuple[str, str]:
 
 
 def contract_summary_table() -> pd.DataFrame:
+    intake_by_contract = {
+        item.contract_id: item for item in backend.finance.intake
+    }
     rows = []
-    for contract_id in contract_ids:
-        row = selected_contract_row(contract_id)
-        margin = margin_for_contract(contract_id)
+    for assessment in backend.finance.margin_analysis:
+        margin = object_dump(assessment)
+        contract_id = str(margin["contract_id"])
+        intake = intake_by_contract.get(contract_id)
         status, reason = contract_status(contract_id)
         rows.append(
             {
                 "contract_id": contract_id,
-                "customer_id": row.get("customer_id"),
-                "status": row.get("status"),
-                "contract_value": row.get("contract_value"),
-                "gross_margin": row.get("gross_margin"),
+                "customer_id": intake.customer_id if intake else None,
+                "status": margin.get("status"),
+                "contract_value_vnd": margin.get("contract_value_vnd"),
+                "gross_margin": margin.get("gross_margin"),
                 "gross_profit_vnd": margin.get("gross_profit_vnd"),
                 "agent_priority": status,
                 "reason": reason,
             }
         )
-    table = pd.DataFrame(rows)
+    table = _tokenize_df(pd.DataFrame(rows), ["customer_id"])
     if selected_contract != "Tất cả hợp đồng":
         table = table[table["contract_id"] == selected_contract]
     return table
@@ -344,7 +383,15 @@ if page == "Tổng quan":
 
     cols = st.columns(4)
     with cols[0]:
-        metric_card("Sheet DS1 đã đọc", f"{len(audit.loaded_sheets)}/8", "sheet lõi", "blue")
+        core_loaded = sum(
+            1 for sheet in DS1_CORE_SHEETS if sheet in audit.loaded_sheets
+        )
+        metric_card(
+            "Sheet DS1 đã đọc",
+            f"{core_loaded}/{len(DS1_CORE_SHEETS)}",
+            "sheet lõi",
+            "blue",
+        )
     with cols[1]:
         metric_card("Bản ghi đã kiểm tra", f"{total_records}", None, "gray")
     with cols[2]:
@@ -376,7 +423,7 @@ if page == "Tổng quan":
         st.caption(f"Đang hiển thị {len(summary)}/{len(contract_ids)} hợp đồng theo filter `{selected_contract}`.")
 
     st.markdown("#### Tất cả credit case")
-    credit_show = credit_df.copy()
+    credit_show = _tokenize_df(credit_df, ["company_id", "customer_id"])
     if not credit_show.empty and selected_contract != "Tất cả hợp đồng":
         credit_show = related_credit_cases(selected_contract)
     st.dataframe(credit_show, use_container_width=True, hide_index=True)
@@ -398,7 +445,8 @@ elif page == "Chi tiết hợp đồng":
         st.markdown("### Vùng 1")
         st.caption("Dữ liệu gốc và audit theo hợp đồng")
         st.markdown("**Hợp đồng đang xem**")
-        st.json({"contract_id": detail_contract_id, "customer": selected_customer_name(contract_row), **contract_row})
+        safe_contract_row = _tokenize_record(contract_row, ["customer_id"])
+        st.json({"contract_id": detail_contract_id, "customer": selected_customer_name(contract_row), **safe_contract_row})
         cols = st.columns(2)
         with cols[0]:
             metric_card("Order liên quan", str(len(order_rows)), None, "blue")
@@ -410,7 +458,11 @@ elif page == "Chi tiết hợp đồng":
         with st.expander("Order của hợp đồng"):
             st.dataframe(order_rows, use_container_width=True, hide_index=True)
         with st.expander("Invoice của hợp đồng"):
-            st.dataframe(invoice_rows, use_container_width=True, hide_index=True)
+            st.dataframe(
+                _tokenize_df(invoice_rows, ["customer_id"]),
+                use_container_width=True,
+                hide_index=True,
+            )
         with st.expander("Giao dịch ngân hàng bị flag"):
             st.dataframe(pd.DataFrame([x.model_dump() for x in backend.risk.transaction_findings]), use_container_width=True, hide_index=True)
 
@@ -459,6 +511,14 @@ elif page == "Chi tiết hợp đồng":
     with z3:
         st.markdown("### Vùng 3")
         st.caption("Hỗ trợ quyết định")
+        if detail_contract_id == "CON-004":
+            st.metric(
+                "Trạng thái",
+                STATE_LABELS.get(
+                    decision_card["state"],
+                    decision_card["state"],
+                ),
+            )
         tab1, tab2, tab3 = st.tabs(["Khuyến nghị", "Dòng tiền", "Gói tín dụng"])
         with tab1:
             if detail_contract_id == "CON-004" and blocked:
@@ -507,23 +567,27 @@ elif page == "Chi tiết hợp đồng":
                 st.session_state.final_state = "DECISION_READY"
                 st.session_state.human_approval_id = "APR-001"
                 st.session_state.action_warning = None
+                st.session_state.action_toast = "Đã duyệt AP-1 và mở khóa luồng quyết định."
                 st.rerun()
             ap1_done = st.session_state.ap1_status == "approved"
             if ap_cols[1].button("Duyệt AP-2 vốn lưu động", use_container_width=True, disabled=not ap1_done or st.session_state.ap2_status == "approved"):
                 st.session_state.ap2_status = "approved"
                 st.session_state.human_approval_id = "APR-002"
                 st.session_state.action_warning = None
+                st.session_state.action_toast = "Đã duyệt AP-2 vốn lưu động."
                 st.rerun()
             if ap_cols[2].button("Duyệt AP-3 bảo lãnh", use_container_width=True, disabled=not ap1_done or st.session_state.ap3_status == "approved"):
                 st.session_state.ap3_status = "approved"
                 st.session_state.human_approval_id = "APR-003"
                 st.session_state.action_warning = None
+                st.session_state.action_toast = "Đã duyệt AP-3 bảo lãnh thực hiện."
                 st.rerun()
             ap23_done = ap1_done and st.session_state.ap2_status == "approved" and st.session_state.ap3_status == "approved"
             if ap_cols[3].button("Duyệt AP-4 gửi hồ sơ", use_container_width=True, disabled=not ap23_done or st.session_state.ap4_status == "approved"):
                 st.session_state.ap4_status = "approved"
                 st.session_state.human_approval_id = "APR-004"
                 st.session_state.action_warning = None
+                st.session_state.action_toast = "Đã duyệt AP-4. Bank API sandbox đã được mở."
                 st.rerun()
 
             all_prereq_done = ap23_done and st.session_state.ap4_status == "approved"
@@ -533,24 +597,95 @@ elif page == "Chi tiết hợp đồng":
                 st.session_state.final_state = "ACTIVE"
                 st.session_state.human_approval_id = "APR-FINAL-APPROVE"
                 st.session_state.action_warning = None
+                st.session_state.action_toast = "Đã duyệt gói đề xuất."
                 st.rerun()
             if final_cols[1].button("Từ chối", use_container_width=True, disabled=not all_prereq_done):
                 st.session_state.final_state = "REJECTED"
                 st.session_state.human_approval_id = "APR-FINAL-REJECT"
                 st.session_state.action_warning = None
+                st.session_state.action_toast = "Đã ghi nhận quyết định từ chối."
                 st.rerun()
             if final_cols[2].button("Yêu cầu bổ sung thông tin", use_container_width=True):
                 st.session_state.final_state = "NEED_MORE_INFORMATION"
                 st.session_state.human_approval_id = "APR-NEEDINFO-001"
                 st.session_state.action_warning = None
+                st.session_state.action_toast = "Đã yêu cầu bổ sung thông tin."
                 st.rerun()
             if final_cols[3].button("Đàm phán lại", use_container_width=True, disabled=not all_prereq_done):
                 st.session_state.final_state = "RENEGOTIATE"
                 st.session_state.human_approval_id = "APR-FINAL-RENEGOTIATE"
                 st.session_state.action_warning = None
+                st.session_state.action_toast = "Đã chuyển hồ sơ sang đàm phán lại."
                 st.rerun()
             if not all_prereq_done and next_step:
                 st.caption(f"Action blocked · Required next step: {next_step}")
+
+            if st.session_state.ap4_status == "approved":
+                st.markdown("#### Bank API sandbox theo BTC catalog")
+                candidate_by_id = {
+                    item.credit_case_id: item
+                    for item in backend.finance.credit_candidates
+                }
+                package_ids = (
+                    backend.finance.credit_plan.decision_package_credit_case_ids
+                    if backend.finance.credit_plan
+                    else list(candidate_by_id)
+                )
+                api_case_ids = [
+                    credit_case_id
+                    for credit_case_id in package_ids
+                    if credit_case_id in CREDIT_TO_API
+                ]
+                selected_api_case = st.selectbox(
+                    "Hồ sơ tín dụng",
+                    api_case_ids,
+                    key="bank_api_credit_case",
+                )
+                selected_api_id = CREDIT_TO_API[selected_api_case]
+                catalog_row = next(
+                    (
+                        row
+                        for row in team_pack.get("12_API_CATALOG", [])
+                        if str(row.get("api_id")) == selected_api_id
+                    ),
+                    {},
+                )
+                st.caption(
+                    f"{selected_api_id} · {catalog_row.get('method', 'POST')} "
+                    f"{catalog_row.get('endpoint', 'endpoint chưa khai báo')} · chỉ mô phỏng, không gửi ngân hàng thật"
+                )
+                simulated_status = st.selectbox(
+                    "HTTP status mô phỏng",
+                    [200, 400, 401, 409, 429, 503],
+                    key="bank_api_status",
+                )
+                if st.button("Gọi Bank API mock", use_container_width=True):
+                    candidate = candidate_by_id[selected_api_case]
+                    st.session_state.bank_api_response = call_bank_api_mock(
+                        selected_api_case,
+                        candidate.requested_amount_vnd,
+                        simulated_status,
+                        api_catalog=team_pack.get("12_API_CATALOG", []),
+                        sandbox_contracts=team_pack.get("22_SANDBOX_CONTRACT", []),
+                    )
+                    result = st.session_state.bank_api_response
+                    if result["ok"]:
+                        st.toast(f"{selected_api_id}: sandbox pre-check thành công.")
+                    else:
+                        st.toast(
+                            f"{selected_api_id}: safe failure {result.get('error_code')}."
+                        )
+                if st.session_state.bank_api_response:
+                    api_result = st.session_state.bank_api_response
+                    if api_result["ok"]:
+                        st.success(
+                            "Sandbox trả về thành công; vẫn cần phê duyệt con người trước khi submit."
+                        )
+                    else:
+                        st.warning(
+                            f"Safe failure: {api_result.get('required_handling')}"
+                        )
+                    st.json(api_result)
 
         if st.button("Xuất runtime log mẫu", use_container_width=True):
             log_path = write_json(ROOT / "runtime_logs" / "sample_runtime_log.json", build_sample_runtime_log(decision_card))
@@ -565,7 +700,10 @@ else:
         "finance_source_audit": backend.finance.source_audit.model_dump(mode="json") if backend.finance.source_audit else None,
         "risk_rule_snapshot": backend.risk.rule_snapshot.model_dump(mode="json") if backend.risk.rule_snapshot else None,
         "contracts": contract_summary_table().to_dict(orient="records"),
-        "credit_cases": credit_df.to_dict(orient="records"),
+        "credit_cases": _tokenize_df(
+            credit_df,
+            ["company_id", "customer_id"],
+        ).to_dict(orient="records"),
     }
     st.json(safe_backend_evidence)
     st.markdown("#### OpenAI GPT-4o trong chức năng lõi")

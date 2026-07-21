@@ -266,6 +266,7 @@
   "margin_analysis": [
     {
       "contract_id": "CON-001",
+      "status": "Active",
       "contract_value_vnd": 720000000,
       "gross_margin": 0.3,
       "target_margin": 0.28,
@@ -277,6 +278,7 @@
     },
     {
       "contract_id": "CON-002",
+      "status": "Active",
       "contract_value_vnd": 980000000,
       "gross_margin": 0.26,
       "target_margin": 0.28,
@@ -288,6 +290,7 @@
     },
     {
       "contract_id": "CON-003",
+      "status": "Active",
       "contract_value_vnd": 1250000000,
       "gross_margin": 0.31,
       "target_margin": 0.28,
@@ -299,6 +302,7 @@
     },
     {
       "contract_id": "CON-004",
+      "status": "Pending expansion",
       "contract_value_vnd": 4200000000,
       "gross_margin": 0.24,
       "target_margin": 0.28,
@@ -310,6 +314,7 @@
     },
     {
       "contract_id": "CON-005",
+      "status": "Negotiation",
       "contract_value_vnd": 1850000000,
       "gross_margin": 0.29,
       "target_margin": 0.28,

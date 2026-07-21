@@ -155,6 +155,7 @@ class ReceivableAgingReport(ContractModel):
 
 class MarginAssessment(ContractModel):
     contract_id: str
+    status: str | None = None
     contract_value_vnd: int = Field(ge=0)
     gross_margin: float = Field(ge=0, le=1)
     target_margin: float = Field(ge=0, le=1)

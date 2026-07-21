@@ -58,6 +58,14 @@ python scripts/generate_fixtures.py
 
 Bank-product matching từ `11_BANK_PRODUCTS` được ingest và audit, nhưng không được chọn trong Finance/Risk Agent: report giao bước chọn package cuối cho Decision & Partner Agent.
 
+## Ranh giới Decision & Partner prototype
+
+- Bản local demo không yêu cầu đăng nhập. Repo không lưu username/password; nếu bản deploy có auth thì credentials phải được cấp qua secret manager ngoài repo.
+- Decision Agent gọi OpenAI Responses API (`POST /v1/responses`) khi có `OPENAI_API_KEY`. Đây là API GA; khi thiếu key, payload không hợp lệ hoặc request lỗi, agent dùng deterministic fallback và ghi rõ `fallback`/`fallback_after_error`.
+- Bank API là mock/sandbox, đọc endpoint và contract lỗi từ `12_API_CATALOG` + `22_SANDBOX_CONTRACT`; không có request nào được gửi tới ngân hàng thật. API-002 được tái sử dụng cho CR-001 vì catalog BTC không có endpoint vốn lưu động chuyên biệt, và mapping này được công khai trong code/output.
+- `11_BANK_PRODUCTS` chỉ cung cấp `collateral_ratio`, không cung cấp `collateral_vnd` tuyệt đối. Các số collateral tuyệt đối trên Decision Card là **prototype fallback**, được gắn `collateral_basis=prototype_fallback_not_provided_by_11_BANK_PRODUCTS`, không phải dữ liệu ngân hàng xác nhận.
+- Bảng tổng quan hợp đồng lấy metric từ `FinanceOutput.margin_analysis`; `customer_id`/`company_id` được token hóa ổn định trước khi render hoặc đưa vào evidence JSON.
+
 ## Cam kết tích hợp với Ngọc
 
 > Từ giờ tới freeze, DS1 chỉ thêm field, không đổi tên và không xóa field. Field nào có logic policy-driven đều có `_basis`; consumer đọc `_basis` thay vì đoán nghĩa từ số.

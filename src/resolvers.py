@@ -536,6 +536,11 @@ def build_margin_analysis(
     return [
         MarginAssessment(
             contract_id=str(contract["contract_id"]),
+            status=(
+                None
+                if contract.get("status") is None
+                else str(contract.get("status"))
+            ),
             contract_value_vnd=int(contract["contract_value"]),
             gross_margin=float(contract["gross_margin"]),
             target_margin=target_margin,

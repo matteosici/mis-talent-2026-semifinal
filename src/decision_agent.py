@@ -18,10 +18,49 @@ TRACE_ID = "TRACE-2026-CON004"
 DECISION_VERSION = "DEC-v1"
 
 BANK_PRODUCT_MAPPING = {
-    "CR-004": {"bank_product_id": "BANKPROD-006", "fit_status": "Fit", "collateral_vnd": 22_000_000, "note": "Phương án bridge nhỏ phù hợp nhất; điểm đủ điều kiện tốt."},
-    "CR-001": {"bank_product_id": "BANKPROD-004", "fit_status": "Pending", "collateral_vnd": 142_500_000, "note": "Hạn mức vốn lưu động; cần bằng chứng tuổi nợ phải thu."},
-    "CR-002": {"bank_product_id": "BANKPROD-002", "fit_status": "Pending", "collateral_vnd": 84_000_000, "note": "Bảo lãnh thực hiện hợp đồng; cần CON-004 được ký và Founder phê duyệt."},
-    "CR-003": {"bank_product_id": "BANKPROD-003", "fit_status": "Tạm giữ / Không phù hợp", "collateral_vnd": 0, "note": "Bị chặn vì thiếu xác nhận nhà cung cấp; không khuyến nghị."},
+    "CR-004": {"bank_product_id": "BANKPROD-006", "fit_status": "Fit", "prototype_collateral_vnd": 22_000_000, "note": "Phương án bridge nhỏ phù hợp nhất; điểm đủ điều kiện tốt."},
+    "CR-001": {"bank_product_id": "BANKPROD-004", "fit_status": "Pending", "prototype_collateral_vnd": 142_500_000, "note": "Hạn mức vốn lưu động; cần bằng chứng tuổi nợ phải thu."},
+    "CR-002": {"bank_product_id": "BANKPROD-002", "fit_status": "Pending", "prototype_collateral_vnd": 84_000_000, "note": "Bảo lãnh thực hiện hợp đồng; cần CON-004 được ký và Founder phê duyệt."},
+    "CR-003": {"bank_product_id": "BANKPROD-003", "fit_status": "Tạm giữ / Không phù hợp", "prototype_collateral_vnd": 0, "note": "Bị chặn vì thiếu xác nhận nhà cung cấp; không khuyến nghị."},
+}
+
+PROTOTYPE_COLLATERAL_BASIS = (
+    "prototype_fallback_not_provided_by_11_BANK_PRODUCTS"
+)
+
+# The BTC catalog has no dedicated working-capital endpoint for CR-001. The
+# prototype therefore reuses API-002 for the two cases in the decision package,
+# and records the mapping explicitly instead of implying a real bank submission.
+CREDIT_TO_API = {
+    "CR-001": "API-002",
+    "CR-002": "API-002",
+    "CR-003": "API-003",
+    "CR-004": "API-005",
+}
+
+_MOCK_ERROR_CODE = {
+    400: "validation_error",
+    401: "auth_required",
+    409: "state_conflict",
+    422: "docs_incomplete",
+    429: "rate_limited",
+    503: "service_unavailable",
+}
+
+_MOCK_REQUIRED_HANDLING = {
+    400: "Validate payload; do not submit until corrected.",
+    401: "Refresh sandbox authentication; never expose credentials in logs.",
+    409: "Refresh current application state before retrying.",
+    422: "Request missing evidence and lower recommendation confidence.",
+    429: "Use a bounded retry with backoff; keep the case pending.",
+    503: "Fail safe and keep the case pending for a later retry.",
+}
+
+_FINAL_STATE_REC = {
+    "ACTIVE": "RECOMMEND",
+    "REJECTED": "NOT_RECOMMEND",
+    "RENEGOTIATE": "CONDITIONAL_RECOMMEND",
+    "NEED_MORE_INFORMATION": "NEEDS_INFO",
 }
 
 
@@ -47,6 +86,118 @@ def _index(rows: list[dict[str, Any]], key: str) -> dict[str, dict[str, Any]]:
     return {str(row.get(key)): row for row in rows if row.get(key) is not None}
 
 
+def _possible_statuses(value: Any) -> list[int]:
+    statuses: list[int] = []
+    for item in str(value or "").split(","):
+        try:
+            statuses.append(int(item.strip()))
+        except ValueError:
+            continue
+    return statuses
+
+
+def resolve_recommendation(
+    final_state: str,
+    has_pending_approvals: bool,
+    evidence_missing: bool,
+) -> str:
+    """Resolve the recommendation while giving an explicit human decision priority."""
+
+    if final_state in _FINAL_STATE_REC:
+        return _FINAL_STATE_REC[final_state]
+    if evidence_missing:
+        return "NOT_RECOMMEND"
+    if has_pending_approvals:
+        return "CONDITIONAL_RECOMMEND"
+    return "RECOMMEND"
+
+
+def call_bank_api_mock(
+    credit_case_id: str,
+    amount_vnd: int,
+    simulate_status: int = 200,
+    *,
+    api_catalog: list[dict[str, Any]] | None = None,
+    sandbox_contracts: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Simulate a BTC bank pre-check without making any external request.
+
+    The response is deliberately structured like a runtime-safe adapter: an
+    unknown mapping, invalid amount, or forced error becomes a visible failure
+    result instead of an exception or a fabricated bank approval.
+    """
+
+    api_id = CREDIT_TO_API.get(str(credit_case_id))
+    catalog_row = _index(api_catalog or [], "api_id").get(str(api_id), {})
+    contract_row = _index(sandbox_contracts or [], "api_id").get(str(api_id), {})
+    try:
+        requested_status = int(simulate_status)
+    except (TypeError, ValueError):
+        requested_status = 400
+    declared_statuses = _possible_statuses(contract_row.get("possible_status"))
+
+    if api_id is None:
+        return {
+            "mode": "mock",
+            "submitted_to_real_bank": False,
+            "ok": False,
+            "credit_case_id": str(credit_case_id),
+            "api_id": None,
+            "http_status": 400,
+            "error_code": "credit_api_mapping_not_found",
+            "safe_failure_reason": "No BTC API mapping exists for this credit case.",
+            "required_handling": "Keep the case pending and request a reviewed mapping.",
+        }
+
+    if amount_vnd <= 0:
+        requested_status = 400
+
+    status_supported = not declared_statuses or requested_status in declared_statuses
+    base = {
+        "mode": "mock",
+        "submitted_to_real_bank": False,
+        "credit_case_id": str(credit_case_id),
+        "amount_vnd": int(amount_vnd),
+        "api_id": api_id,
+        "provider": catalog_row.get("provider", "BTC Sandbox"),
+        "method": catalog_row.get("method", "POST"),
+        "endpoint": catalog_row.get("endpoint", contract_row.get("endpoint")),
+        "requires_human_approval": contract_row.get("requires_human_approval"),
+        "contract_required_handling": contract_row.get("required_handling"),
+        "http_status": requested_status,
+        "contract_status_supported": status_supported,
+        "declared_statuses": declared_statuses,
+        "masked_fields": [
+            field.strip()
+            for field in str(contract_row.get("sensitive_fields") or "").split(",")
+            if field.strip()
+        ],
+    }
+    if requested_status == 200:
+        return {
+            **base,
+            "ok": True,
+            "result": "precheck_received",
+            "message": "Sandbox pre-check completed; human approval is still required before submission.",
+        }
+
+    error_code = _MOCK_ERROR_CODE.get(requested_status, "sandbox_error")
+    return {
+        **base,
+        "ok": False,
+        "error_code": error_code,
+        "safe_failure_reason": (
+            f"Forced sandbox response {requested_status} ({error_code})."
+            if status_supported
+            else f"Status {requested_status} is not declared for {api_id}; treated as an injected transport failure."
+        ),
+        "required_handling": _MOCK_REQUIRED_HANDLING.get(
+            requested_status,
+            str(contract_row.get("required_handling") or "Keep the case pending for review."),
+        ),
+    }
+
+
 def build_bank_fit_matrix(backend: DS1BackendOutput, bank_products: list[dict[str, Any]]) -> list[dict[str, Any]]:
     products_by_id = _index(bank_products, "bank_product_id")
     candidates = {item.credit_case_id: item for item in backend.finance.credit_candidates}
@@ -65,10 +216,14 @@ def build_bank_fit_matrix(backend: DS1BackendOutput, bank_products: list[dict[st
             "annual_rate_or_fee": product.get("annual_rate_or_fee"),
             "processing_fee_rate": product.get("processing_fee_rate"),
             "collateral_ratio": product.get("collateral_ratio"),
-            "collateral_vnd": mapping["collateral_vnd"],
+            "collateral_vnd": mapping["prototype_collateral_vnd"],
+            "collateral_basis": PROTOTYPE_COLLATERAL_BASIS,
             "fit_status": mapping["fit_status"],
             "fit_note": product.get("fit_note") or mapping["note"],
-            "demo_note": mapping["note"],
+            "demo_note": (
+                "Prototype fallback: 11_BANK_PRODUCTS provides collateral_ratio, "
+                "not an absolute collateral_vnd amount. " + mapping["note"]
+            ),
         })
     return matrix
 
@@ -76,15 +231,47 @@ def build_bank_fit_matrix(backend: DS1BackendOutput, bank_products: list[dict[st
 def _fallback_openai_result(backend: DS1BackendOutput) -> OpenAIResult:
     finance = backend.finance.d5_handoff
     risk = backend.risk.d5_handoff
+    txn_ids = risk.transaction_hold.txn_ids if risk.transaction_hold else []
+    candidate_ids = list(finance.credit_candidate_ids or [])
+    candidate_by_id = {
+        item.credit_case_id: item for item in backend.finance.credit_candidates
+    }
+    package_ids = (
+        list(backend.finance.credit_plan.decision_package_credit_case_ids)
+        if backend.finance.credit_plan
+        else candidate_ids
+    )
+    package_ids = [item for item in package_ids if item in candidate_ids]
+    credit_conditions = [
+        (
+            f"AP-{index}: Founder phê duyệt hồ sơ {credit_case_id} trị giá "
+            f"{_money(candidate_by_id[credit_case_id].requested_amount_vnd if credit_case_id in candidate_by_id else None)}."
+        )
+        for index, credit_case_id in enumerate(package_ids, start=2)
+    ]
+    credit_flag = next(iter(backend.risk.credit_risk_flags), None)
+    conflicts = []
+    if credit_flag:
+        conflicts.append({
+            "description": (
+                f"Finance vẫn giữ {credit_flag.credit_case_id} trong danh sách candidate, "
+                f"trong khi Risk flag {credit_flag.rule_id} vì eligibility "
+                f"{credit_flag.eligibility_score:.2f} thấp hơn ngưỡng {credit_flag.threshold:.2f}."
+            ),
+            "resolution_note": (
+                f"Giữ {credit_flag.credit_case_id} ở trạng thái có điều kiện, gắn uncertainty "
+                "và yêu cầu Founder phê duyệt thay vì âm thầm loại bỏ."
+            ),
+        })
     return OpenAIResult(
-        conflicts_detected=[{
-            "description": "Finance vẫn giữ CR-002 trong danh sách candidate, trong khi Risk flag RR-006 vì eligibility 0.63 thấp hơn ngưỡng 0.65.",
-            "resolution_note": "Giữ CR-002 ở trạng thái có điều kiện, gắn uncertainty và yêu cầu Founder phê duyệt thay vì âm thầm loại bỏ.",
-        }],
+        conflicts_detected=conflicts,
         conditions=[
-            "AP-1: Founder xác nhận tạm giữ TXN-006/TXN-007 trước mọi thao tác gửi hồ sơ tài chính.",
-            "AP-2: Founder phê duyệt hồ sơ vốn lưu động CR-001 trị giá 950 triệu VND.",
-            "AP-3: Founder phê duyệt hồ sơ bảo lãnh thực hiện CR-002 trị giá 420 triệu VND.",
+            (
+                "AP-1: Founder xác nhận tạm giữ "
+                f"{('/'.join(txn_ids) if txn_ids else 'cụm giao dịch được Risk Agent flag')} "
+                "trước mọi thao tác gửi hồ sơ tài chính."
+            ),
+            *credit_conditions,
             "AP-4: Founder phê duyệt gửi hồ sơ ra VietinBank sau khi dữ liệu đã được masking/tokenization.",
             "AP-5: Founder ra quyết định cuối cùng cho CON-004: nhận, từ chối hoặc đàm phán lại.",
         ],
@@ -142,6 +329,9 @@ def build_decision_card(
     *,
     use_openai: bool = True,
     ap1_status: str = "pending",
+    ap2_status: str = "pending",
+    ap3_status: str = "pending",
+    ap4_status: str = "pending",
     final_state: str = "DECISION_READY",
     human_approval_id: str | None = None,
 ) -> dict[str, Any]:
@@ -149,13 +339,32 @@ def build_decision_card(
     llm = _call_openai_for_narrative(backend, bank_fit_matrix) if use_openai else _fallback_openai_result(backend)
     finance = backend.finance.d5_handoff
     risk = backend.risk.d5_handoff
+    ap5_status = (
+        "approved"
+        if final_state in {"ACTIVE", "REJECTED", "RENEGOTIATE"}
+        else "pending"
+    )
     approval_required = [
         {"id": "AP-1", "description": "Tạm giữ TXN-006/007", "amount": risk.transaction_hold_amount_vnd, "status": ap1_status, "blocks": ["AP-2", "AP-3", "AP-4", "AP-5"]},
-        {"id": "AP-2", "description": "Phê duyệt vốn lưu động CR-001", "amount": 950_000_000, "status": "pending", "blocks": ["AP-5"]},
-        {"id": "AP-3", "description": "Phê duyệt bảo lãnh thực hiện CR-002", "amount": 420_000_000, "status": "pending", "blocks": ["AP-5"]},
-        {"id": "AP-4", "description": "Phê duyệt gửi hồ sơ ngoài qua API-002", "amount": None, "status": "pending", "blocks": ["AP-5"]},
-        {"id": "AP-5", "description": "Quyết định nhận/ký CON-004", "amount": 4_200_000_000, "status": "pending", "blocks": []},
+        {"id": "AP-2", "description": "Phê duyệt vốn lưu động CR-001", "amount": 950_000_000, "status": ap2_status, "blocks": ["AP-5"]},
+        {"id": "AP-3", "description": "Phê duyệt bảo lãnh thực hiện CR-002", "amount": 420_000_000, "status": ap3_status, "blocks": ["AP-5"]},
+        {"id": "AP-4", "description": "Phê duyệt gửi hồ sơ ngoài qua API-002", "amount": None, "status": ap4_status, "blocks": ["AP-5"]},
+        {"id": "AP-5", "description": "Quyết định nhận/ký CON-004", "amount": 4_200_000_000, "status": ap5_status, "blocks": []},
     ]
+    candidate_ids = set(finance.credit_candidate_ids or [])
+    assessment_by_id = {
+        item.credit_case_id: item for item in backend.risk.credit_assessments
+    }
+    evidence_missing_any = any(
+        assessment_by_id[credit_case_id].evidence_missing
+        for credit_case_id in candidate_ids
+        if credit_case_id in assessment_by_id
+    )
+    recommendation = resolve_recommendation(
+        final_state,
+        any(item["status"] != "approved" for item in approval_required),
+        evidence_missing_any,
+    )
     return {
         "trace_id": TRACE_ID,
         "decision_version": DECISION_VERSION,
@@ -163,8 +372,8 @@ def build_decision_card(
         "contract_name": "Cooperative Network Rollout - 20-Province Expansion",
         "customer_name_masked": "TOK-CUS-A91F",
         "state": final_state,
-        "recommendation": "CONDITIONAL_RECOMMEND",
-        "financial_ask": {"breakdown": [{"credit_id": "CR-001", "amount": 950_000_000, "bank_product": "BANKPROD-004"}, {"credit_id": "CR-002", "amount": 420_000_000, "bank_product": "BANKPROD-002"}], "total": finance.decision_package_total_ask_vnd, "collateral_total": 248_500_000, "cost_estimate_per_period": 67_000_000},
+        "recommendation": recommendation,
+        "financial_ask": {"breakdown": [{"credit_id": "CR-001", "amount": 950_000_000, "bank_product": "BANKPROD-004"}, {"credit_id": "CR-002", "amount": 420_000_000, "bank_product": "BANKPROD-002"}], "total": finance.decision_package_total_ask_vnd, "collateral_total": 248_500_000, "collateral_total_basis": PROTOTYPE_COLLATERAL_BASIS, "cost_estimate_per_period": 67_000_000},
         "bank_fit_matrix": bank_fit_matrix,
         "risks_remaining": [{"description": "CR-002 eligibility 0.63 < 0.65", "rule_ref": "RR-006", "severity": "Medium"}, {"description": "ORD-004 có rủi ro triển khai; phạt 4.65 triệu VND/ngày nếu trễ quá 7 ngày", "rule_ref": "RR-007", "severity": "High"}],
         "missing_evidence": [{"description": "Thiếu xác nhận nhà cung cấp cho CR-003/CON-005", "blocks": ["CR-003"]}],

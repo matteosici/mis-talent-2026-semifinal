@@ -529,6 +529,17 @@ def test_finance_fixture_matches_team_pack(finance_output):
     assert "gap_magnitude" not in json.dumps(actual)
 
 
+def test_margin_analysis_carries_contract_status(finance_output):
+    con004 = _by_id(
+        [item.model_dump() for item in finance_output.margin_analysis],
+        "contract_id",
+        "CON-004",
+    )
+
+    assert con004["status"] == "Pending expansion"
+    assert con004["contract_value_vnd"] == 4_200_000_000
+
+
 def test_risk_fixture_matches_team_pack(risk_output):
     actual = risk_output.model_dump(mode="json")
     expected = json.loads((ROOT / "fixtures" / "risk_output_sample.json").read_text("utf-8"))
