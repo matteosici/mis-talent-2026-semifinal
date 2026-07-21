@@ -11,6 +11,7 @@ from .contracts import (
     CreditCandidate,
     CreditPlan,
     CreditAssessment,
+    CustomerIntakeStatus,
     ExecutionFeasibility,
     FinanceOutput,
     FinanceHandoff,
@@ -26,6 +27,7 @@ from .team_pack import audit_ds1_sources
 
 
 Record = Mapping[str, Any]
+NEW_OPPORTUNITY_STATUSES = {"pending expansion", "negotiation"}
 
 
 def evidence_missing(precheck_note: str | None, markers: Sequence[str]) -> bool:
@@ -33,6 +35,100 @@ def evidence_missing(precheck_note: str | None, markers: Sequence[str]) -> bool:
 
     note = (precheck_note or "").casefold()
     return any(marker.casefold() in note for marker in markers)
+
+
+def customer_intake(
+    contract: Record, customers: Sequence[Record]
+) -> tuple[CustomerIntakeStatus, list[ValidationIssue]]:
+    """Apply DT-0A without mutating state or fabricating customer evidence."""
+
+    contract_id = str(contract.get("contract_id", ""))
+    raw_customer_id = contract.get("customer_id")
+    customer_id = "" if raw_customer_id is None else str(raw_customer_id).strip()
+    if not customer_id:
+        return (
+            CustomerIntakeStatus(
+                contract_id=contract_id,
+                customer_id="",
+                verified=False,
+                flag="customer_id_missing",
+                payment_reliability=None,
+            ),
+            [
+                ValidationIssue(
+                    code="CUSTOMER_ID_MISSING",
+                    message=(
+                        f"Contract {contract_id} has no customer_id; customer verification "
+                        "cannot proceed."
+                    ),
+                    severity="error",
+                    record_id=contract_id,
+                    field="customer_id",
+                )
+            ],
+        )
+
+    customer = next(
+        (
+            row
+            for row in customers
+            if str(row.get("customer_id", "")).strip() == customer_id
+        ),
+        None,
+    )
+    if customer is None:
+        return (
+            CustomerIntakeStatus(
+                contract_id=contract_id,
+                customer_id=customer_id,
+                verified=False,
+                flag="unverified",
+                payment_reliability=None,
+            ),
+            [
+                ValidationIssue(
+                    code="CUSTOMER_UNVERIFIED",
+                    message=(
+                        f"Customer {customer_id} referenced by contract {contract_id} "
+                        "does not exist in 03_CUSTOMERS."
+                    ),
+                    severity="error",
+                    record_id=customer_id,
+                    field="customer_id",
+                )
+            ],
+        )
+
+    reliability = customer.get("payment_reliability")
+    return (
+        CustomerIntakeStatus(
+            contract_id=contract_id,
+            customer_id=customer_id,
+            verified=True,
+            payment_reliability=(
+                None if reliability is None else float(reliability)
+            ),
+        ),
+        [],
+    )
+
+
+def _new_opportunity_contracts(contracts: Sequence[Record]) -> list[Record]:
+    return [
+        contract
+        for contract in contracts
+        if str(contract.get("status", "")).casefold() in NEW_OPPORTUNITY_STATUSES
+    ]
+
+
+def _aggregate_execution_feasibility(
+    results: Sequence[ExecutionFeasibility],
+) -> bool | None:
+    if any(item.execution_feasible is False for item in results):
+        return False
+    if not results or any(item.execution_feasible is None for item in results):
+        return None
+    return True
 
 
 def build_cashflow_report(rows: Sequence[Record], policy: PolicyConfig) -> CashflowReport:
@@ -106,8 +202,33 @@ def build_finance_output(
         credit_candidates,
         cashflow.worst_month_funding_need_vnd,
     )
+    opportunity_contracts = _new_opportunity_contracts(
+        team_pack.get("04_CONTRACTS", [])
+    )
+    intake: list[CustomerIntakeStatus] = []
+    intake_issues: list[ValidationIssue] = []
+    for contract in opportunity_contracts:
+        status, status_issues = customer_intake(
+            contract, team_pack.get("03_CUSTOMERS", [])
+        )
+        intake.append(status)
+        intake_issues.extend(status_issues)
+    feasibility = [
+        resolve_execution_feasibility(
+            contract,
+            team_pack.get("06_ORDERS", []),
+            team_pack.get("05_PRODUCTS", []),
+            effective_policy,
+        )
+        for contract in opportunity_contracts
+    ]
     source_audit = audit_ds1_sources(dict(team_pack))
-    issues = [*rule_snapshot.issues, *receivable_issues]
+    issues = [
+        *rule_snapshot.issues,
+        *receivable_issues,
+        *intake_issues,
+        *(issue for result in feasibility for issue in result.issues),
+    ]
     for sheet in source_audit.missing_sheets:
         issues.append(
             ValidationIssue(
@@ -155,6 +276,8 @@ def build_finance_output(
         credit_candidate_ids=candidate_ids,
         priority_bridge_amount_vnd=credit_plan.priority_bridge_amount_vnd,
         decision_package_total_ask_vnd=credit_plan.decision_package_total_ask_vnd,
+        customer_verified=all(item.verified for item in intake),
+        execution_feasible=_aggregate_execution_feasibility(feasibility),
     )
     return FinanceOutput(
         source_workbook=source_workbook,
@@ -162,6 +285,8 @@ def build_finance_output(
         open_receivables_vnd=receivables.open_invoices_total_vnd,
         source_audit=source_audit,
         rule_snapshot=rule_snapshot,
+        intake=intake,
+        feasibility=feasibility,
         receivable_aging=receivables,
         margin_analysis=margin_analysis,
         credit_candidates=credit_candidates,
@@ -224,13 +349,45 @@ def resolve_execution_feasibility(
         )
 
     matched_value = sum(int(product_map[service_id]["list_price"]) for service_id in service_ids)
+    if contract.get("contract_value") is None:
+        issue = ValidationIssue(
+            code="CONTRACT_VALUE_MISSING",
+            record_id=contract_id,
+            field="contract_value",
+            message="Contract value is missing; the opportunity is infeasible under DT-0B.",
+            severity="error",
+        )
+        return ExecutionFeasibility(
+            contract_id=contract_id,
+            service_ids=service_ids,
+            matched_service_list_price_vnd=matched_value,
+            execution_feasible=False,
+            issues=[issue],
+        )
+
     contract_value = int(contract["contract_value"])
     feasible = abs(matched_value - contract_value) <= policy.service_value_tolerance_vnd
+    issues = []
+    if not feasible:
+        issues.append(
+            ValidationIssue(
+                code="SERVICE_VALUE_MISMATCH",
+                record_id=contract_id,
+                field="contract_value",
+                message=(
+                    f"Service list price {matched_value} does not match contract value "
+                    f"{contract_value} within tolerance "
+                    f"{policy.service_value_tolerance_vnd}."
+                ),
+                severity="error",
+            )
+        )
     return ExecutionFeasibility(
         contract_id=contract_id,
         service_ids=service_ids,
         matched_service_list_price_vnd=matched_value,
         execution_feasible=feasible,
+        issues=issues,
     )
 
 

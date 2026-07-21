@@ -111,6 +111,17 @@ class CashflowReport(ContractModel):
     worst_month_reserve_gap_vnd: int
 
 
+class CustomerIntakeStatus(ContractModel):
+    contract_id: str
+    customer_id: str
+    verified: bool
+    flag: Literal["unverified", "customer_id_missing"] | None = None
+    payment_reliability: float | None = Field(default=None, ge=0, le=1)
+    basis: Literal["customer_id existence in 03_CUSTOMERS"] = (
+        "customer_id existence in 03_CUSTOMERS"
+    )
+
+
 class FinanceOutput(ContractModel):
     schema_version: Literal["1.0"] = "1.0"
     source_workbook: str
@@ -121,6 +132,8 @@ class FinanceOutput(ContractModel):
     )
     source_audit: SourceAudit | None = None
     rule_snapshot: BusinessRuleSnapshot | None = None
+    intake: list[CustomerIntakeStatus] = Field(default_factory=list)
+    feasibility: list["ExecutionFeasibility"] = Field(default_factory=list)
     receivable_aging: "ReceivableAgingReport | None" = None
     margin_analysis: list["MarginAssessment"] = Field(default_factory=list)
     credit_candidates: list["CreditCandidate"] = Field(default_factory=list)
@@ -197,6 +210,16 @@ class FinanceHandoff(ContractModel):
     credit_candidate_ids: list[str]
     priority_bridge_amount_vnd: int = Field(ge=0)
     decision_package_total_ask_vnd: int = Field(ge=0)
+    customer_verified: bool = True
+    customer_verified_basis: Literal[
+        "all new-opportunity customers exist in 03_CUSTOMERS"
+    ] = "all new-opportunity customers exist in 03_CUSTOMERS"
+    execution_feasible: bool | None = None
+    execution_feasible_basis: Literal[
+        "false if any new opportunity is infeasible; null if any is unknown; true otherwise"
+    ] = (
+        "false if any new opportunity is infeasible; null if any is unknown; true otherwise"
+    )
 
 
 class ExecutionFeasibility(ContractModel):

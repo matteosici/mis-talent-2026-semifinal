@@ -4,6 +4,8 @@ Controlling narrative: `../NhiemVuHeThong_Report.pdf`. The implementation follow
 
 | Report scope | Source sheets | Implementation | Observable output | Golden evidence |
 | --- | --- | --- | --- | --- |
+| Finance T0a: customer intake gate | `04_CONTRACTS`, `03_CUSTOMERS` | `customer_intake`, `build_finance_output` | Per-opportunity verified status and real reliability; unknown/blank customer produces a structured issue; aggregate `customer_verified` handoff flag | Agent Logic Spec DT-0A |
+| Finance T0b: operational feasibility gate | `04_CONTRACTS`, `06_ORDERS`, `05_PRODUCTS` | `resolve_execution_feasibility`, `build_finance_output` | Per-opportunity `true`/`false`/`null` result plus issues; aggregate `execution_feasible` handoff flag | Agent Logic Spec DT-0B; Report service/value join |
 | D1 step 3 / D5 Finance T1: cashflow monitoring | `09_CASHFLOW`, `13_RISK_RULES` | `build_cashflow_report`, `run_d1_step3_finance_agent` | 6/6 breaches; Jul funding need 1.19B; severity Critical/Critical/Critical/High/High/High | Report pp. 3, 9, 19–20 |
 | D5 Finance T2: receivable aging | `07_INVOICES`, `03_CUSTOMERS`, `06_ORDERS` | `build_receivable_aging` | Open 635M; Not issued 2.76B; high risk INV-002; dependency INV-005→CON-004 | Report pp. 9, 20 |
 | D5 Finance T3: margin + credit candidates | `04_CONTRACTS`, `02_OPC_PROFILE`, `10_CREDIT_PROFILE`, `13_RISK_RULES` | `build_margin_analysis`, `build_credit_candidates`, `build_credit_plan` | Warnings CON-002/CON-004; CR-004→CR-001→CR-002; bridge 1.17B; decision package 1.37B; CR-003 hold | Report pp. 9, 19–21 |
@@ -20,3 +22,10 @@ The ingestion audit requires the eight DS1 core sheets named in the assignment a
 ## Safety boundary
 
 The Risk Agent prepares a transaction-hold payload but never executes API-006. `financial_flow_paused=true` remains active while the Critical cluster lacks founder confirmation. Governance flags are decision support, not approvals.
+
+Finance Task 0a/0b follows the same producer boundary: the agent emits structured gate evidence, aggregate handoff flags and validation issues, but never early-exits or changes an application/contract state. Pause/skip and `NOT_RECOMMEND` behavior belongs to the later orchestration task.
+
+## Method lock-ins
+
+- Finance T2 keeps `high_risk_invoice_id=INV-002` using minimum known payment reliability. This deliberately replaces the earlier ambiguous Report wording “due_date × reliability”; collection `priority_rank` remains a separate amount-descending axis.
+- Risk RR-007 remains unchanged: `execution_risks` contains ORD-004 and ORD-008, both systemic for CON-003, with potential penalties of 4.65M VND/day and 6.3M VND/day respectively.

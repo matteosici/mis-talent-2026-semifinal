@@ -24,3 +24,13 @@ The earlier number list mixed grains. 635M is the total of three Open invoices, 
 ## DS1 scope revision
 
 The eight gaps remain closed. The backend now also implements the report-level D1 step 3/4 and D5 handoffs: rule-driven margin and RR-001 thresholds, receivable aging, credit candidate ordering/bridge values, transaction clustering, RR-005/RR-006 governance, execution penalty exposure, masking/tokenization and a paused financial flow while the Critical hold is unresolved. See `DS1_SCOPE_MATRIX.md`.
+
+## Agent Logic gate alignment
+
+Finance Task 0a and Task 0b are now producer-side structured gates for new-opportunity contracts whose status is `Pending expansion` or `Negotiation`:
+
+- DT-0A emits one `CustomerIntakeStatus` per opportunity. A known customer retains the real `payment_reliability`; an unknown or blank `customer_id` emits `verified=false`, never fabricates reliability, and surfaces `CUSTOMER_UNVERIFIED` or `CUSTOMER_ID_MISSING`.
+- DT-0B reuses the documented `04_CONTRACTS -> 06_ORDERS -> 05_PRODUCTS` resolution. It preserves three states: `true` for value-aligned known services, `false` for an actual value mismatch or missing contract value, and `null` when order/service evidence is unavailable.
+- `FinanceHandoff.customer_verified` and `FinanceHandoff.execution_feasible` are aggregate signals only. Finance does not pause, skip, mutate state, or return `NOT_RECOMMEND`; orchestration owns those actions.
+
+The invoice risk method remains intentionally different from the earlier Report phrase “due_date × reliability.” The implementation exposes two separate, unambiguous axes: collection `priority_rank` by invoice amount descending and `high_risk_invoice_id` by minimum known payment reliability. This produces the Report handoff value `INV-002` and remains locked by `test_priority_by_amount` and `test_high_risk_by_reliability`.

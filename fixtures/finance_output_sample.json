@@ -188,6 +188,46 @@
     ],
     "issues": []
   },
+  "intake": [
+    {
+      "contract_id": "CON-004",
+      "customer_id": "CUS-005",
+      "verified": true,
+      "flag": null,
+      "payment_reliability": 0.83,
+      "basis": "customer_id existence in 03_CUSTOMERS"
+    },
+    {
+      "contract_id": "CON-005",
+      "customer_id": "CUS-008",
+      "verified": true,
+      "flag": null,
+      "payment_reliability": 0.74,
+      "basis": "customer_id existence in 03_CUSTOMERS"
+    }
+  ],
+  "feasibility": [
+    {
+      "contract_id": "CON-004",
+      "service_ids": [
+        "SVC-004"
+      ],
+      "matched_service_list_price_vnd": 4200000000,
+      "execution_feasible": true,
+      "execution_feasibility_basis": "sum_unique_service_list_price_vnd matches contract_value_vnd",
+      "issues": []
+    },
+    {
+      "contract_id": "CON-005",
+      "service_ids": [
+        "SVC-005"
+      ],
+      "matched_service_list_price_vnd": 1850000000,
+      "execution_feasible": true,
+      "execution_feasibility_basis": "sum_unique_service_list_price_vnd matches contract_value_vnd",
+      "issues": []
+    }
+  ],
   "receivable_aging": {
     "paid_invoices_total_vnd": 45000000,
     "open_invoices_total_vnd": 635000000,
@@ -382,7 +422,11 @@
       "CR-002"
     ],
     "priority_bridge_amount_vnd": 1170000000,
-    "decision_package_total_ask_vnd": 1370000000
+    "decision_package_total_ask_vnd": 1370000000,
+    "customer_verified": true,
+    "customer_verified_basis": "all new-opportunity customers exist in 03_CUSTOMERS",
+    "execution_feasible": true,
+    "execution_feasible_basis": "false if any new opportunity is infeasible; null if any is unknown; true otherwise"
   },
   "issues": []
 }

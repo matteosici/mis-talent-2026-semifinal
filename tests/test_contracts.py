@@ -10,6 +10,7 @@ from src.agents import run_ds1_backend
 from src.resolvers import (
     build_cashflow_report,
     build_finance_output,
+    customer_intake,
     derive_credit_assessments,
     evidence_missing,
     rank_open_invoices,
@@ -79,6 +80,102 @@ def test_contract_without_orders_returns_none(team_pack, policy):
 
     assert result.execution_feasible is None
     assert result.issues[0].code == "CONTRACT_ORDERS_NOT_FOUND"
+
+
+def test_customer_intake_verifies_con004_with_real_reliability(team_pack):
+    contract = _by_id(team_pack["04_CONTRACTS"], "contract_id", "CON-004")
+
+    status, issues = customer_intake(contract, team_pack["03_CUSTOMERS"])
+
+    assert status.contract_id == "CON-004"
+    assert status.customer_id == "CUS-005"
+    assert status.verified is True
+    assert status.flag is None
+    assert status.payment_reliability == 0.83
+    assert status.basis == "customer_id existence in 03_CUSTOMERS"
+    assert issues == []
+
+
+def test_customer_intake_unknown_customer_surfaces_gate_without_crash(
+    team_pack, policy
+):
+    changed = deepcopy(team_pack)
+    contract = _by_id(changed["04_CONTRACTS"], "contract_id", "CON-004")
+    contract["customer_id"] = "CUS-099"
+
+    output = build_finance_output(changed, policy, WORKBOOK.name)
+    status = next(item for item in output.intake if item.contract_id == "CON-004")
+
+    assert status.customer_id == "CUS-099"
+    assert status.verified is False
+    assert status.flag == "unverified"
+    assert status.payment_reliability is None
+    assert output.d5_handoff.customer_verified is False
+    assert any(
+        issue.code == "CUSTOMER_UNVERIFIED" and issue.record_id == "CUS-099"
+        for issue in output.issues
+    )
+
+
+def test_customer_intake_missing_customer_id_has_distinct_issue(team_pack, policy):
+    changed = deepcopy(team_pack)
+    contract = _by_id(changed["04_CONTRACTS"], "contract_id", "CON-004")
+    contract["customer_id"] = None
+
+    output = build_finance_output(changed, policy, WORKBOOK.name)
+    status = next(item for item in output.intake if item.contract_id == "CON-004")
+
+    assert status.customer_id == ""
+    assert status.verified is False
+    assert status.flag == "customer_id_missing"
+    assert status.payment_reliability is None
+    assert output.d5_handoff.customer_verified is False
+    assert any(
+        issue.code == "CUSTOMER_ID_MISSING" and issue.record_id == "CON-004"
+        for issue in output.issues
+    )
+
+
+def test_finance_surfaces_new_opportunity_feasibility(team_pack, policy):
+    output = build_finance_output(team_pack, policy, WORKBOOK.name)
+    feasibility = {item.contract_id: item for item in output.feasibility}
+
+    assert set(feasibility) == {"CON-004", "CON-005"}
+    assert feasibility["CON-004"].execution_feasible is True
+    assert output.d5_handoff.execution_feasible is True
+
+
+def test_finance_unknown_service_surfaces_unknown_gate(team_pack, policy):
+    changed = deepcopy(team_pack)
+    for order in changed["06_ORDERS"]:
+        if order.get("contract_id") == "CON-004":
+            order["service_id"] = "SVC-999"
+
+    output = build_finance_output(changed, policy, WORKBOOK.name)
+    feasibility = next(
+        item for item in output.feasibility if item.contract_id == "CON-004"
+    )
+
+    assert feasibility.execution_feasible is None
+    assert feasibility.issues[0].code == "SERVICE_NOT_FOUND"
+    assert output.d5_handoff.execution_feasible is None
+    assert any(issue.code == "SERVICE_NOT_FOUND" for issue in output.issues)
+
+
+def test_finance_value_mismatch_surfaces_false_gate(team_pack, policy):
+    changed = deepcopy(team_pack)
+    contract = _by_id(changed["04_CONTRACTS"], "contract_id", "CON-004")
+    contract["contract_value"] += 1
+
+    output = build_finance_output(changed, policy, WORKBOOK.name)
+    feasibility = next(
+        item for item in output.feasibility if item.contract_id == "CON-004"
+    )
+
+    assert feasibility.execution_feasible is False
+    assert feasibility.issues[0].code == "SERVICE_VALUE_MISMATCH"
+    assert output.d5_handoff.execution_feasible is False
+    assert any(issue.code == "SERVICE_VALUE_MISMATCH" for issue in output.issues)
 
 
 def test_worst_month_by_funding_need(team_pack, policy):
@@ -383,9 +480,13 @@ def test_execution_risk_penalty_matches_report(risk_output):
         "ORD-008",
     ]
     ord004 = next(item for item in risk_output.execution_risks if item.order_id == "ORD-004")
+    ord008 = next(item for item in risk_output.execution_risks if item.order_id == "ORD-008")
     assert ord004.systemic is True
     assert ord004.late_delivery_days_threshold == 7
     assert ord004.potential_penalty_vnd_per_day == 4_650_000
+    assert ord008.systemic is True
+    assert ord008.late_delivery_days_threshold == 7
+    assert ord008.potential_penalty_vnd_per_day == 6_300_000
 
 
 def test_safe_handling_uses_published_masking_examples(risk_output):
