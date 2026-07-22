@@ -544,7 +544,7 @@ def _call_openai_for_narrative(backend: DS1BackendOutput, bank_fit_matrix: list[
                 }
             },
             temperature=0,
-            max_output_tokens=1500,
+            max_output_tokens=1000,
         )
         parsed = json.loads(_strip_json_fence(getattr(response, "output_text", "")))
         conflicts = parsed.get("conflicts_detected") if isinstance(parsed, dict) else None

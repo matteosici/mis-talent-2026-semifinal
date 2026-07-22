@@ -19,8 +19,10 @@ from src.team_pack import (
     DEFAULT_WORKBOOK,
     load_team_pack,
 )
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).parent
+load_dotenv(ROOT / ".env")
 ASSETS = ROOT / "assets"
 LOCAL_WORKBOOK = ROOT / DEFAULT_WORKBOOK
 EXTERNAL_V3_WORKBOOK = ROOT.parent / "MISTalent2026_OPC_AgenticAI_TeamPack_v3.xlsx"

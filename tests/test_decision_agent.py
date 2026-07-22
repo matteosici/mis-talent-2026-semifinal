@@ -112,7 +112,7 @@ def test_openai_live_path_strips_fence_validates_and_sets_params(
     assert result.llm_meta["schema_validation"] == "PASSED"
     assert calls["client"] == {"timeout": 30}
     assert calls["create"]["temperature"] == 0  # type: ignore[index]
-    assert calls["create"]["max_output_tokens"] == 1500  # type: ignore[index]
+    assert calls["create"]["max_output_tokens"] == 1000  # type: ignore[index]
 
 
 @pytest.mark.parametrize(
