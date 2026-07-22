@@ -5,3 +5,4 @@ __pycache__/
 .env
 output/
 submission/prototype_credentials.txt
+.streamlit/secrets.toml

@@ -7,6 +7,7 @@ from Excel. OpenAI is optional and has a deterministic fallback for demo safety.
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 from dataclasses import dataclass
@@ -27,6 +28,8 @@ BANK_PRODUCT_MAPPING = {
 PROTOTYPE_COLLATERAL_BASIS = (
     "prototype_fallback_not_provided_by_11_BANK_PRODUCTS"
 )
+SHEET_COLLATERAL_BASIS = "11_BANK_PRODUCTS.collateral_vnd"
+MIXED_COLLATERAL_BASIS = "mixed_sheet_and_prototype_fallback"
 
 # The BTC catalog has no dedicated working-capital endpoint for CR-001. The
 # prototype therefore reuses API-002 for the two cases in the decision package,
@@ -198,6 +201,36 @@ def call_bank_api_mock(
     }
 
 
+def _resolve_collateral(
+    product: dict[str, Any],
+    mapping: dict[str, Any],
+) -> tuple[int | float, str, str]:
+    """Prefer absolute collateral from the product sheet, then fail transparently."""
+
+    raw_value = product.get("collateral_vnd")
+    if raw_value is not None and not isinstance(raw_value, bool):
+        try:
+            numeric_value = float(raw_value)
+        except (TypeError, ValueError):
+            numeric_value = math.nan
+        if math.isfinite(numeric_value) and numeric_value >= 0:
+            collateral_vnd: int | float = (
+                int(numeric_value) if numeric_value.is_integer() else numeric_value
+            )
+            return (
+                collateral_vnd,
+                SHEET_COLLATERAL_BASIS,
+                "Read from 11_BANK_PRODUCTS.collateral_vnd. " + mapping["note"],
+            )
+
+    return (
+        mapping["prototype_collateral_vnd"],
+        PROTOTYPE_COLLATERAL_BASIS,
+        "Prototype fallback: 11_BANK_PRODUCTS does not provide a valid "
+        "absolute collateral_vnd amount. " + mapping["note"],
+    )
+
+
 def build_bank_fit_matrix(backend: DS1BackendOutput, bank_products: list[dict[str, Any]]) -> list[dict[str, Any]]:
     products_by_id = _index(bank_products, "bank_product_id")
     candidates = {item.credit_case_id: item for item in backend.finance.credit_candidates}
@@ -205,6 +238,10 @@ def build_bank_fit_matrix(backend: DS1BackendOutput, bank_products: list[dict[st
     for credit_case_id, mapping in BANK_PRODUCT_MAPPING.items():
         candidate = candidates.get(credit_case_id)
         product = products_by_id.get(mapping["bank_product_id"], {})
+        collateral_vnd, collateral_basis, demo_note = _resolve_collateral(
+            product,
+            mapping,
+        )
         matrix.append({
             "credit_case_id": credit_case_id,
             "requested_amount_vnd": candidate.requested_amount_vnd if candidate else None,
@@ -216,14 +253,11 @@ def build_bank_fit_matrix(backend: DS1BackendOutput, bank_products: list[dict[st
             "annual_rate_or_fee": product.get("annual_rate_or_fee"),
             "processing_fee_rate": product.get("processing_fee_rate"),
             "collateral_ratio": product.get("collateral_ratio"),
-            "collateral_vnd": mapping["prototype_collateral_vnd"],
-            "collateral_basis": PROTOTYPE_COLLATERAL_BASIS,
+            "collateral_vnd": collateral_vnd,
+            "collateral_basis": collateral_basis,
             "fit_status": mapping["fit_status"],
             "fit_note": product.get("fit_note") or mapping["note"],
-            "demo_note": (
-                "Prototype fallback: 11_BANK_PRODUCTS provides collateral_ratio, "
-                "not an absolute collateral_vnd amount. " + mapping["note"]
-            ),
+            "demo_note": demo_note,
         })
     return matrix
 
@@ -285,13 +319,44 @@ def _fallback_openai_result(backend: DS1BackendOutput) -> OpenAIResult:
     )
 
 
+def _validate_narrative(
+    conflicts: Any,
+    conditions: Any,
+    rationale: Any,
+) -> bool:
+    """Validate the minimum Decision Card narrative contract."""
+
+    if not isinstance(conflicts, list) or not all(
+        isinstance(conflict, dict) for conflict in conflicts
+    ):
+        return False
+    if not isinstance(conditions, list) or not all(
+        isinstance(condition, str) for condition in conditions
+    ):
+        return False
+    return isinstance(rationale, str) and bool(rationale.strip())
+
+
+def _strip_json_fence(value: str) -> str:
+    """Remove an optional Markdown JSON fence without altering plain JSON."""
+
+    text = value.strip()
+    lines = text.splitlines()
+    if lines and lines[0].strip().lower() in {"```", "```json"}:
+        lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        return "\n".join(lines).strip()
+    return text
+
+
 def _call_openai_for_narrative(backend: DS1BackendOutput, bank_fit_matrix: list[dict[str, Any]]) -> OpenAIResult:
     if not os.getenv("OPENAI_API_KEY"):
         return _fallback_openai_result(backend)
     started = time.perf_counter()
     try:
         from openai import OpenAI
-        client = OpenAI()
+        client = OpenAI(timeout=30)
         prompt_payload = {
             "finance_handoff": backend.finance.d5_handoff.model_dump(mode="json"),
             "risk_handoff": backend.risk.d5_handoff.model_dump(mode="json"),
@@ -305,13 +370,36 @@ def _call_openai_for_narrative(backend: DS1BackendOutput, bank_fit_matrix: list[
                 "Return strict JSON with keys conflicts_detected, conditions, rationale.\n\n"
                 + json.dumps(prompt_payload, ensure_ascii=False)
             ),
+            temperature=0,
+            max_output_tokens=1500,
         )
-        parsed = json.loads(getattr(response, "output_text", ""))
+        parsed = json.loads(
+            _strip_json_fence(getattr(response, "output_text", ""))
+        )
+        conflicts = parsed.get("conflicts_detected") if isinstance(parsed, dict) else None
+        conditions = parsed.get("conditions") if isinstance(parsed, dict) else None
+        rationale = parsed.get("rationale") if isinstance(parsed, dict) else None
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        if not _validate_narrative(conflicts, conditions, rationale):
+            fallback = _fallback_openai_result(backend)
+            return OpenAIResult(
+                conflicts_detected=fallback.conflicts_detected,
+                conditions=fallback.conditions,
+                rationale=fallback.rationale,
+                llm_meta={
+                    **fallback.llm_meta,
+                    "mode": "fallback_after_invalid_schema",
+                    "response_id": getattr(response, "id", None),
+                    "latency_ms": latency_ms,
+                    "schema_validation": "FAILED",
+                    "safe_failure_reason": "invalid_narrative_schema",
+                },
+            )
         return OpenAIResult(
-            conflicts_detected=parsed.get("conflicts_detected") or [],
-            conditions=parsed.get("conditions") or [],
-            rationale=parsed.get("rationale") or _fallback_openai_result(backend).rationale,
-            llm_meta={"model": os.getenv("OPENAI_MODEL", "gpt-4o"), "mode": "live", "confidence": 0.82, "response_id": getattr(response, "id", None), "latency_ms": int((time.perf_counter() - started) * 1000), "schema_validation": "PASSED"},
+            conflicts_detected=conflicts,
+            conditions=conditions,
+            rationale=rationale,
+            llm_meta={"model": os.getenv("OPENAI_MODEL", "gpt-4o"), "mode": "live", "confidence": 0.82, "response_id": getattr(response, "id", None), "latency_ms": latency_ms, "schema_validation": "PASSED"},
         )
     except Exception as exc:
         fallback = _fallback_openai_result(backend)
@@ -319,7 +407,7 @@ def _call_openai_for_narrative(backend: DS1BackendOutput, bank_fit_matrix: list[
             conflicts_detected=fallback.conflicts_detected,
             conditions=fallback.conditions,
             rationale=fallback.rationale,
-            llm_meta={**fallback.llm_meta, "mode": "fallback_after_error", "safe_failure_reason": exc.__class__.__name__},
+            llm_meta={**fallback.llm_meta, "mode": "fallback_after_error", "schema_validation": "NOT_RUN", "safe_failure_reason": exc.__class__.__name__},
         )
 
 
@@ -339,15 +427,54 @@ def build_decision_card(
     llm = _call_openai_for_narrative(backend, bank_fit_matrix) if use_openai else _fallback_openai_result(backend)
     finance = backend.finance.d5_handoff
     risk = backend.risk.d5_handoff
+    candidate_by_id = {
+        item.credit_case_id: item for item in backend.finance.credit_candidates
+    }
+    package_ids = (
+        list(backend.finance.credit_plan.decision_package_credit_case_ids)
+        if backend.finance.credit_plan
+        else list(finance.credit_candidate_ids or [])
+    )
+    bank_fit_by_credit_id = {
+        item["credit_case_id"]: item for item in bank_fit_matrix
+    }
+    financial_breakdown = []
+    package_collateral_rows = []
+    for credit_case_id in package_ids:
+        candidate = candidate_by_id.get(credit_case_id)
+        fit = bank_fit_by_credit_id.get(credit_case_id, {})
+        financial_breakdown.append({
+            "credit_id": credit_case_id,
+            "amount": candidate.requested_amount_vnd if candidate else None,
+            "bank_product": fit.get("bank_product_id"),
+        })
+        if fit.get("collateral_vnd") is not None:
+            package_collateral_rows.append(fit)
+    collateral_bases = {
+        str(item["collateral_basis"])
+        for item in package_collateral_rows
+        if item.get("collateral_basis")
+    }
+    collateral_total_basis = (
+        next(iter(collateral_bases))
+        if len(collateral_bases) == 1
+        else MIXED_COLLATERAL_BASIS
+        if collateral_bases
+        else None
+    )
+    txn_ids = risk.transaction_hold.txn_ids if risk.transaction_hold else []
+    transaction_hold_subject = (
+        "/".join(txn_ids) if txn_ids else "cụm giao dịch được Risk Agent flag"
+    )
     ap5_status = (
         "approved"
         if final_state in {"ACTIVE", "REJECTED", "RENEGOTIATE"}
         else "pending"
     )
     approval_required = [
-        {"id": "AP-1", "description": "Tạm giữ TXN-006/007", "amount": risk.transaction_hold_amount_vnd, "status": ap1_status, "blocks": ["AP-2", "AP-3", "AP-4", "AP-5"]},
-        {"id": "AP-2", "description": "Phê duyệt vốn lưu động CR-001", "amount": 950_000_000, "status": ap2_status, "blocks": ["AP-5"]},
-        {"id": "AP-3", "description": "Phê duyệt bảo lãnh thực hiện CR-002", "amount": 420_000_000, "status": ap3_status, "blocks": ["AP-5"]},
+        {"id": "AP-1", "description": f"Tạm giữ {transaction_hold_subject}", "amount": risk.transaction_hold_amount_vnd, "status": ap1_status, "blocks": ["AP-2", "AP-3", "AP-4", "AP-5"]},
+        {"id": "AP-2", "description": "Phê duyệt vốn lưu động CR-001", "amount": 950_000_000, "status": ap2_status, "blocks": ["AP-4", "AP-5"]},
+        {"id": "AP-3", "description": "Phê duyệt bảo lãnh thực hiện CR-002", "amount": 420_000_000, "status": ap3_status, "blocks": ["AP-4", "AP-5"]},
         {"id": "AP-4", "description": "Phê duyệt gửi hồ sơ ngoài qua API-002", "amount": None, "status": ap4_status, "blocks": ["AP-5"]},
         {"id": "AP-5", "description": "Quyết định nhận/ký CON-004", "amount": 4_200_000_000, "status": ap5_status, "blocks": []},
     ]
@@ -373,7 +500,7 @@ def build_decision_card(
         "customer_name_masked": "TOK-CUS-A91F",
         "state": final_state,
         "recommendation": recommendation,
-        "financial_ask": {"breakdown": [{"credit_id": "CR-001", "amount": 950_000_000, "bank_product": "BANKPROD-004"}, {"credit_id": "CR-002", "amount": 420_000_000, "bank_product": "BANKPROD-002"}], "total": finance.decision_package_total_ask_vnd, "collateral_total": 248_500_000, "collateral_total_basis": PROTOTYPE_COLLATERAL_BASIS, "cost_estimate_per_period": 67_000_000},
+        "financial_ask": {"breakdown": financial_breakdown, "total": finance.decision_package_total_ask_vnd, "collateral_total": sum(item["collateral_vnd"] for item in package_collateral_rows), "collateral_total_basis": collateral_total_basis, "cost_estimate_per_period": 67_000_000},
         "bank_fit_matrix": bank_fit_matrix,
         "risks_remaining": [{"description": "CR-002 eligibility 0.63 < 0.65", "rule_ref": "RR-006", "severity": "Medium"}, {"description": "ORD-004 có rủi ro triển khai; phạt 4.65 triệu VND/ngày nếu trễ quá 7 ngày", "rule_ref": "RR-007", "severity": "High"}],
         "missing_evidence": [{"description": "Thiếu xác nhận nhà cung cấp cho CR-003/CON-005", "blocks": ["CR-003"]}],
@@ -382,7 +509,7 @@ def build_decision_card(
         "masked_fields": ["customer_id", "account_id", "contract_value", "access_token"],
         "human_approval_id": human_approval_id,
         "conflicts_detected": llm.conflicts_detected,
-        "critical_flags": [] if ap1_status == "approved" else ["TXN-006/007 chưa được xác nhận tạm giữ"],
+        "critical_flags": [] if ap1_status == "approved" else [f"{transaction_hold_subject} chưa được xác nhận tạm giữ"],
         "conditions": llm.conditions,
         "rationale": llm.rationale,
         "llm_meta": llm.llm_meta,

@@ -34,6 +34,8 @@ DS1_SUPPORTING_SHEETS = (
     "21_MASKING_EXAMPLES",
 )
 
+DS1_REQUIRED_SHEETS = DS1_CORE_SHEETS + DS1_SUPPORTING_SHEETS
+
 
 def _python_value(value: Any, column: str | None = None) -> Any:
     if value is None or pd.isna(value):
@@ -85,7 +87,7 @@ def workbook_columns(team_pack: dict[str, list[dict[str, Any]]]) -> set[str]:
 def audit_ds1_sources(
     team_pack: dict[str, list[dict[str, Any]]],
 ) -> SourceAudit:
-    required = DS1_CORE_SHEETS + DS1_SUPPORTING_SHEETS
+    required = DS1_REQUIRED_SHEETS
     row_counts = {sheet: len(team_pack.get(sheet, [])) for sheet in required}
     missing = [sheet for sheet in required if sheet not in team_pack]
     return SourceAudit(

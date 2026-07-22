@@ -14,7 +14,7 @@ Kết quả QA tại thời điểm bàn giao:
 - `30 passed` với workbook thật.
 - Toàn bộ `src`, `tests` và `scripts` compile thành công.
 - `pip check` trả về `No broken requirements found`.
-- Audit xác nhận đủ 8/8 sheet lõi DS1.
+- Audit xác nhận đủ 14/14 sheet DS1 bắt buộc: 8 sheet lõi và 6 sheet hỗ trợ join.
 - Finance output khớp các số neo trong report.
 - Risk output khớp RR-001, cluster, governance, execution risk và masking trong report.
 - Perturbation tests chứng minh thay threshold trong `13_RISK_RULES` sẽ làm output thay đổi; kết quả không bị đóng cứng theo fixture.

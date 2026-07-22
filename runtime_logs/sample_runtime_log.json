@@ -7,7 +7,7 @@
     "tool_or_api_id": "TEAM_PACK_EXCEL",
     "request_id": "REQ-FIN-001",
     "masked_fields": [],
-    "response_status": "8_core_sheets_loaded",
+    "response_status": "14_sheets_loaded_8_core_6_supporting",
     "retry_count": 0,
     "human_approval_id": null,
     "decision_version": "DEC-v1",

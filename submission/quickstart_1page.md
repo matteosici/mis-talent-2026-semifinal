@@ -51,18 +51,19 @@ The local demo intentionally has no login screen. No username/password is
 stored in the repository. A hosted build must provision authentication through
 the deployment platform if authentication is required.
 
-OpenAI live mode uses the GA Responses API (`POST /v1/responses`) and falls back
-deterministically when the key is absent or the request fails. Bank calls are
-mock-only: the UI reads `12_API_CATALOG` and `22_SANDBOX_CONTRACT`, never sends a
+OpenAI live mode uses the GA Responses API (`POST /v1/responses`), validates the
+narrative schema before writing the Decision Card, and records `FAILED` or
+`NOT_RUN` when it falls back after invalid output or a request error. Bank calls
+are mock-only: the UI reads `12_API_CATALOG` and `22_SANDBOX_CONTRACT`, never sends a
 real application, and can demonstrate safe failures after AP-4.
 
-Collateral amounts are prototype fallbacks because `11_BANK_PRODUCTS` provides
-ratios but no absolute `collateral_vnd`; the Decision Card marks this basis on
-every bank-fit row.
+The Decision Agent prefers absolute `collateral_vnd` values from
+`11_BANK_PRODUCTS`. Because the current Team Pack provides ratios but no
+absolute values, the Decision Card uses and marks prototype fallbacks.
 
 ## 4. Live demo flow
 
-1. Open Overview and show `DATA: LIVE EXCEL`, 8/8 DS1 core sheets loaded, input hash, timestamp.
+1. Open Overview and show `DATA: LIVE EXCEL`, 14/14 DS1 sheets loaded (8 core + 6 supporting), input hash, timestamp.
 2. Go to `CON-004 Detail`.
 3. Show Finance Agent: 6/6 breach months, worst month 2026-07, credit ask 1.37B.
 4. Show Risk Agent: TXN-006/TXN-007, 178M exposure, `BLOCKED BY CRITICAL RISK`.

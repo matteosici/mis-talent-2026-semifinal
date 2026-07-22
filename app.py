@@ -13,7 +13,13 @@ from src.agents import run_ds1_backend
 from src.decision_agent import CREDIT_TO_API, build_decision_card, call_bank_api_mock
 from src.runtime_log import build_sample_runtime_log, write_json
 from src.security import _stable_token
-from src.team_pack import DS1_CORE_SHEETS, DEFAULT_WORKBOOK, load_team_pack
+from src.team_pack import (
+    DS1_CORE_SHEETS,
+    DS1_REQUIRED_SHEETS,
+    DS1_SUPPORTING_SHEETS,
+    DEFAULT_WORKBOOK,
+    load_team_pack,
+)
 
 ROOT = Path(__file__).parent
 LOCAL_WORKBOOK = ROOT / DEFAULT_WORKBOOK
@@ -213,7 +219,12 @@ decision_card = build_decision_card(
 )
 
 llm_mode = decision_card.get("llm_meta", {}).get("mode", "fallback")
-openai_label = {"live": "LIVE", "fallback": "DỰ PHÒNG", "fallback_after_error": "DỰ PHÒNG SAU LỖI"}.get(llm_mode, llm_mode.upper())
+openai_label = {
+    "live": "LIVE",
+    "fallback": "DỰ PHÒNG",
+    "fallback_after_invalid_schema": "DỰ PHÒNG: SCHEMA FAILED",
+    "fallback_after_error": "DỰ PHÒNG SAU LỖI",
+}.get(llm_mode, llm_mode.upper())
 if initial_blocked:
     openai_label = "CHỜ AP-1"
 openai_class = "good" if llm_mode == "live" and not initial_blocked else "warn"
@@ -383,13 +394,13 @@ if page == "Tổng quan":
 
     cols = st.columns(4)
     with cols[0]:
-        core_loaded = sum(
-            1 for sheet in DS1_CORE_SHEETS if sheet in audit.loaded_sheets
+        required_loaded = sum(
+            1 for sheet in DS1_REQUIRED_SHEETS if sheet in audit.loaded_sheets
         )
         metric_card(
             "Sheet DS1 đã đọc",
-            f"{core_loaded}/{len(DS1_CORE_SHEETS)}",
-            "sheet lõi",
+            f"{required_loaded}/{len(DS1_REQUIRED_SHEETS)}",
+            f"{len(DS1_CORE_SHEETS)} lõi + {len(DS1_SUPPORTING_SHEETS)} hỗ trợ",
             "blue",
         )
     with cols[1]:
@@ -453,7 +464,10 @@ elif page == "Chi tiết hợp đồng":
         with cols[1]:
             metric_card("Invoice liên quan", str(len(invoice_rows)), None, "green")
         st.markdown("**Sức khỏe dữ liệu**")
-        st.write(f"8/8 sheet lõi DS1: `{backend.finance.source_audit.core_complete}`")
+        st.write(
+            "14/14 sheet DS1 (8 lõi + 6 hỗ trợ): "
+            f"`{not backend.finance.source_audit.missing_sheets}`"
+        )
         st.write(f"Mã hash dữ liệu: `{workbook_hash}`")
         with st.expander("Order của hợp đồng"):
             st.dataframe(order_rows, use_container_width=True, hide_index=True)
@@ -712,7 +726,11 @@ else:
         "input": ["finance_handoff", "risk_handoff", "bank_fit_matrix"],
         "output": ["conflicts_detected", "conditions", "rationale"],
         "mode_runtime": decision_card.get("llm_meta", {}),
-        "fallback_policy": "Nếu thiếu OPENAI_API_KEY hoặc API lỗi, app dùng deterministic fallback và ghi mode fallback/fallback_after_error."
+        "fallback_policy": (
+            "Thiếu OPENAI_API_KEY dùng deterministic fallback; output sai schema ghi "
+            "fallback_after_invalid_schema/FAILED; lỗi trước validate ghi "
+            "fallback_after_error/NOT_RUN."
+        ),
     })
     st.markdown("#### Thẻ quyết định CON-004")
     st.json(decision_card)

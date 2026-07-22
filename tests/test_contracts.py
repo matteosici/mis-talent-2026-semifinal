@@ -16,7 +16,14 @@ from src.resolvers import (
     rank_open_invoices,
     resolve_execution_feasibility,
 )
-from src.team_pack import load_policy, load_team_pack, workbook_columns
+from src.team_pack import (
+    DS1_CORE_SHEETS,
+    DS1_REQUIRED_SHEETS,
+    DS1_SUPPORTING_SHEETS,
+    load_policy,
+    load_team_pack,
+    workbook_columns,
+)
 from src.validation import (
     build_data_health_report,
     build_risk_output,
@@ -326,6 +333,10 @@ def test_ds1_ingestion_audit_reads_all_required_sources(finance_output):
     audit = finance_output.source_audit
 
     assert audit is not None
+    assert len(DS1_CORE_SHEETS) == 8
+    assert len(DS1_SUPPORTING_SHEETS) == 6
+    assert len(DS1_REQUIRED_SHEETS) == 14
+    assert len(audit.loaded_sheets) == 14
     assert audit.core_complete is True
     assert audit.missing_sheets == []
     assert audit.row_counts["04_CONTRACTS"] == 5
