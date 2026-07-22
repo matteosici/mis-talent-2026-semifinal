@@ -164,7 +164,7 @@ await evaluate(`(() => {
   return true;
 })()`);
 await waitFor(
-  `document.body?.innerText?.includes("Contract Detail") && document.body?.innerText?.includes("Duyệt AP-1")`,
+  `document.body?.innerText?.includes("Contract Detail") && document.body?.innerText?.includes("Phân tích")`,
   "contract detail"
 );
 
@@ -235,12 +235,23 @@ await waitFor(
 );
 
 const screenshots = [collapsedSidebarScreenshot];
+screenshots.push(await capture("implementation-awaiting-analysis.png"));
+screenshots.push(await capture("implementation-awaiting-analysis-full.png", true));
+
+await clickButton("Phân tích chi tiết cho CON-004");
+await waitFor(
+  `document.body?.innerText?.includes("Duyệt AP-1") && document.body?.innerText?.includes("BLOCKED BY CRITICAL RISK") && document.body?.innerText?.includes("Kết quả phân tích sức khỏe tài chính tổng thể của OPC")`,
+  "two-agent analysis"
+);
 screenshots.push(await capture("implementation-blocked-by-ap1.png"));
 screenshots.push(await capture("implementation-blocked-by-ap1-full.png", true));
 
 await clickButton("Duyệt AP-1");
 await waitFor(
-  `document.body?.innerText?.includes("CREDIT_PACKAGE_PROPOSED") && !document.body?.innerText?.includes("Thẻ quyết định đang bị khóa")`,
+  `document.body?.innerText?.includes("CREDIT_PACKAGE_PROPOSED")
+    && document.body?.innerText?.includes("Dòng tiền & Gói tín dụng")
+    && document.body?.innerText?.includes("Decision & Partner Agent")
+    && document.body?.innerText?.includes("Decision Card")`,
   "AP-1 approval"
 );
 screenshots.push(await capture("implementation-credit-package-proposed.png"));
@@ -272,7 +283,8 @@ await waitFor(
 
 await clickButton("Phê duyệt");
 await waitFor(
-  `document.body?.innerText?.includes("state: ACTIVE")`,
+  `document.querySelector('.final-banner.active')?.innerText?.includes("CON-004 đã được phê duyệt")
+    && document.body?.innerText?.includes("Trạng thái CON-004")`,
   "final ACTIVE state"
 );
 screenshots.push(await capture("implementation-final-active.png"));
