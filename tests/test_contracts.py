@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from copy import deepcopy
@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from src.agents import run_ds1_backend
+from src.decision_agent import build_decision_card
 from src.resolvers import (
     build_cashflow_report,
     build_finance_output,
@@ -446,6 +447,23 @@ def test_rr001_sheet_threshold_drives_scan(team_pack, policy):
     assert check.status == "divergence"
 
 
+
+def test_singleton_rr001_finding_still_creates_hold_handoff(team_pack, policy):
+    changed = deepcopy(team_pack)
+    changed["08_BANK_TXN"] = [
+        row for row in changed["08_BANK_TXN"] if row["txn_id"] != "TXN-007"
+    ]
+
+    output = build_risk_output(changed, policy, WORKBOOK.name)
+
+    assert [item.txn_id for item in output.transaction_findings] == ["TXN-006"]
+    assert output.transaction_clusters == []
+    assert output.d5_handoff.transaction_hold is not None
+    assert output.d5_handoff.transaction_hold.txn_ids == ["TXN-006"]
+    assert output.d5_handoff.transaction_hold_source == "single_finding"
+    assert output.d5_handoff.transaction_hold_txn_ids == ["TXN-006"]
+    assert output.d5_handoff.transaction_hold_amount_vnd == output.transaction_findings[0].exposure_vnd
+    assert output.d5_handoff.financial_flow_paused is True
 def test_missing_rr001_uses_explicit_policy_fallback(team_pack, policy):
     changed = deepcopy(team_pack)
     changed["13_RISK_RULES"] = [
@@ -523,14 +541,54 @@ def test_d1_step3_and_step4_entrypoint_runs_real_backend():
     output = run_ds1_backend(WORKBOOK, ROOT / "config" / "policies.yaml")
 
     assert output.finance.d5_handoff.worst_month == "2026-07"
+    assert output.finance.d5_handoff.funding_need_by_month_vnd["2026-07"] == 1_190_000_000
+    assert output.finance.d5_handoff.reserve_gap_by_month_vnd["2026-07"] == 680_000_000
     assert output.finance.d5_handoff.credit_candidate_ids == [
         "CR-004",
         "CR-001",
         "CR-002",
     ]
+    assert output.risk.d5_handoff.transaction_hold_source == "cluster"
+    assert output.risk.d5_handoff.transaction_hold_txn_ids == ["TXN-006", "TXN-007"]
     assert output.risk.d5_handoff.transaction_hold_amount_vnd == 178_000_000
     assert output.risk.d5_handoff.financial_flow_paused is True
 
+
+
+
+def test_decision_card_uses_backend_values_and_approval_state(team_pack, policy):
+    changed = deepcopy(team_pack)
+    cr001 = _by_id(changed["10_CREDIT_PROFILE"], "credit_case_id", "CR-001")
+    cr001["requested_amount"] = 900_000_000
+    con004 = _by_id(changed["04_CONTRACTS"], "contract_id", "CON-004")
+    con004["gross_margin"] = 0.25
+
+    backend = run_ds1_backend(WORKBOOK, ROOT / "config" / "policies.yaml")
+    changed_backend = build_finance_output(changed, policy, WORKBOOK.name)
+    full_changed_backend = backend.model_copy(update={"finance": changed_backend})
+    card = build_decision_card(
+        full_changed_backend,
+        changed,
+        use_openai=False,
+        ap1_status="approved",
+        ap2_status="approved",
+        ap3_status="approved",
+        ap4_status="approved",
+        final_state="ACTIVE",
+        human_approval_id="APR-FINAL-APPROVE",
+    )
+
+    cr001_line = next(
+        item for item in card["financial_ask"]["breakdown"] if item["credit_id"] == "CR-001"
+    )
+    ap2 = next(item for item in card["approval_required"] if item["id"] == "AP-2")
+    ap5 = next(item for item in card["approval_required"] if item["id"] == "AP-5")
+
+    assert cr001_line["amount"] == 900_000_000
+    assert ap2["amount"] == 900_000_000
+    assert card["financial_ask"]["total"] == 1_320_000_000
+    assert card["upside_if_conditions_met"]["gross_profit_vnd"] == 1_050_000_000
+    assert ap5["status"] == "approved"
 
 def test_finance_fixture_matches_team_pack(finance_output):
     actual = finance_output.model_dump(mode="json")
@@ -557,3 +615,4 @@ def test_risk_fixture_matches_team_pack(risk_output):
 
     assert actual == expected
     assert "due_date × reliability" not in json.dumps(actual)
+

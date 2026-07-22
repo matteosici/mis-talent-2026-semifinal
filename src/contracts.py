@@ -1,4 +1,4 @@
-"""Frozen producer contracts shared by the finance and risk lanes.
+﻿"""Frozen producer contracts shared by the finance and risk lanes.
 
 The public field names in this module are the integration boundary. Until the
 competition freeze, changes should be additive only: do not rename or remove a
@@ -201,7 +201,10 @@ class CreditPlan(ContractModel):
 
 
 class FinanceHandoff(ContractModel):
+    # Legacy alias kept for schema compatibility; values equal funding_need_by_month_vnd.
     funding_gap_by_month_vnd: dict[str, int]
+    funding_need_by_month_vnd: dict[str, int]
+    reserve_gap_by_month_vnd: dict[str, int]
     worst_month: str
     worst_month_basis: Literal["funding_need", "reserve_gap"]
     open_invoices_total_vnd: int = Field(ge=0)
@@ -392,6 +395,8 @@ class SafeHandlingNote(ContractModel):
 
 class RiskHandoff(ContractModel):
     transaction_hold: TransactionHoldPayload | None
+    transaction_hold_source: Literal["cluster", "single_finding"] | None = None
+    transaction_hold_txn_ids: list[str] = Field(default_factory=list)
     transaction_hold_amount_vnd: int = Field(ge=0)
     transaction_hold_severity: str | None
     approval_requirement_record_ids: list[str]
@@ -411,3 +416,7 @@ class DictionaryValidationResult(ContractModel):
 class DS1BackendOutput(ContractModel):
     finance: FinanceOutput
     risk: RiskOutput
+
+
+
+

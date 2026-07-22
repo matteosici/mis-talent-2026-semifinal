@@ -1,4 +1,4 @@
-"""D1 step 4 / D5 Risk & Compliance Agent logic."""
+﻿"""D1 step 4 / D5 Risk & Compliance Agent logic."""
 
 from __future__ import annotations
 
@@ -288,18 +288,44 @@ def build_report_safe_handling_notes(
 
 
 def build_risk_handoff(
+    findings: Sequence[TransactionRiskFinding],
     clusters: Sequence[TransactionCluster],
     governance: Sequence[GovernanceFlag],
     credit_flags: Sequence[CreditRiskFlag],
     execution_risks: Sequence[ExecutionRisk],
     safe_notes: Sequence[SafeHandlingNote],
 ) -> RiskHandoff:
-    primary = clusters[0] if clusters else None
-    paused = primary is not None and primary.severity.casefold() == "critical"
+    primary_cluster = clusters[0] if clusters else None
+    if primary_cluster is not None:
+        hold_payload = primary_cluster.hold_payload
+        hold_amount = primary_cluster.total_exposure_vnd
+        hold_severity = primary_cluster.severity
+        hold_source = "cluster"
+        hold_txn_ids = primary_cluster.txn_ids
+    else:
+        hold_findings = [
+            item for item in findings if item.severity.casefold() == "critical"
+        ]
+        if not hold_findings:
+            hold_payload = None
+            hold_amount = 0
+            hold_severity = None
+            hold_source = None
+            hold_txn_ids = []
+        else:
+            hold_txn_ids = [item.txn_id for item in hold_findings]
+            hold_payload = TransactionHoldPayload(txn_ids=hold_txn_ids)
+            hold_amount = sum(item.exposure_vnd for item in hold_findings)
+            hold_severity = "Critical"
+            hold_source = "single_finding"
+
+    paused = hold_payload is not None and (hold_severity or "").casefold() == "critical"
     return RiskHandoff(
-        transaction_hold=None if primary is None else primary.hold_payload,
-        transaction_hold_amount_vnd=0 if primary is None else primary.total_exposure_vnd,
-        transaction_hold_severity=None if primary is None else primary.severity,
+        transaction_hold=hold_payload,
+        transaction_hold_source=hold_source,
+        transaction_hold_txn_ids=hold_txn_ids,
+        transaction_hold_amount_vnd=hold_amount,
+        transaction_hold_severity=hold_severity,
         approval_requirement_record_ids=[item.record_id for item in governance],
         credit_risk_record_ids=[item.credit_case_id for item in credit_flags],
         execution_risk_order_ids=[item.order_id for item in execution_risks],

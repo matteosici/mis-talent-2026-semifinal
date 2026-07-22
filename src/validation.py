@@ -1,4 +1,4 @@
-"""Cross-source checks that preserve mismatches instead of hiding them."""
+﻿"""Cross-source checks that preserve mismatches instead of hiding them."""
 
 from __future__ import annotations
 
@@ -379,6 +379,7 @@ def build_risk_output(
     ]
     safe_notes = build_report_safe_handling_notes(team_pack, risky_rows)
     handoff = build_risk_handoff(
+        transaction_findings,
         transaction_clusters,
         governance_flags,
         credit_risk_flags,
@@ -406,3 +407,4 @@ def build_risk_output(
         d5_handoff=handoff,
         issues=issues,
     )
+

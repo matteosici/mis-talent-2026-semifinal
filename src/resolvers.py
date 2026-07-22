@@ -1,4 +1,4 @@
-"""Pure, policy-driven resolvers for the eight documented specification gaps."""
+﻿"""Pure, policy-driven resolvers for the eight documented specification gaps."""
 
 from __future__ import annotations
 
@@ -263,10 +263,16 @@ def build_finance_output(
     candidate_ids = [
         item.credit_case_id for item in credit_candidates if item.candidate_status != "hold"
     ]
+    funding_need_by_month = {
+        month.month: month.funding_need_vnd for month in cashflow.months
+    }
+    reserve_gap_by_month = {
+        month.month: month.reserve_gap_vnd for month in cashflow.months
+    }
     handoff = FinanceHandoff(
-        funding_gap_by_month_vnd={
-            month.month: month.funding_need_vnd for month in cashflow.months
-        },
+        funding_gap_by_month_vnd=funding_need_by_month,
+        funding_need_by_month_vnd=funding_need_by_month,
+        reserve_gap_by_month_vnd=reserve_gap_by_month,
         worst_month=cashflow.worst_month,
         worst_month_basis=cashflow.worst_month_basis,
         open_invoices_total_vnd=receivables.open_invoices_total_vnd,
@@ -691,3 +697,7 @@ def derive_credit_assessments(
             )
         )
     return assessments
+
+
+
+

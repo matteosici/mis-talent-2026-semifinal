@@ -40,40 +40,63 @@ st.set_page_config(page_title="Dashboard AI Agent OPC", layout="wide", page_icon
 st.markdown(
     """
 <style>
-html, body, [class*="css"] { font-family: "Source Sans Pro", Arial, sans-serif; }
-.stApp { background: #ffffff; color: #1f2937; }
-.block-container { padding-top: 1.25rem; padding-bottom: 2rem; max-width: 1260px; }
-section[data-testid="stSidebar"] { background: #fbfbfc; border-right: 1px solid #eef0f3; }
-h1 { letter-spacing: 0; color: #202633; font-weight: 800; font-size: 2.05rem; }
-h2, h3 { letter-spacing: 0; color: #273142; }
-.section-title { font-size: 25px; line-height: 1.25; font-weight: 800; color: #202633; margin: .25rem 0 1rem; }
-.badge { display:inline-block; border:1px solid #d8dee8; border-radius:6px; padding:5px 9px; margin-right:7px; font-size:12px; font-weight:700; background:#fff; }
-.good { color:#067647; border-color:#abefc6; background:#ecfdf3; }
-.warn { color:#b54708; border-color:#fedf89; background:#fffaeb; }
-.blue { color:#175cd3; border-color:#b2ddff; background:#eff8ff; }
-.state-box { border-left:5px solid #ff4b4b; padding:11px 13px; background:#fff5f6; border-radius:7px; margin-bottom:12px; box-shadow: 0 1px 4px rgba(16,24,40,.04); }
-.state-ok { border-left-color:#12b76a; background:#f3fff7; }
-.metric-card { border:1px solid #eef0f3; border-radius:8px; padding:12px 14px; min-height:92px; box-shadow:0 2px 10px rgba(16,24,40,.04); overflow:hidden; }
-.metric-blue { background:#f4f8ff; }
-.metric-green { background:#f3fbf6; }
-.metric-amber { background:#fff8ed; }
-.metric-rose { background:#fff4f5; }
+html, body, [class*="css"] { font-family: "IBM Plex Sans", "Source Sans Pro", Arial, sans-serif; }
+.stApp { background: #eef1ec; color: #111827; }
+.block-container { padding-top: 4.8rem; padding-bottom: 2rem; max-width: 1320px; }
+section[data-testid="stSidebar"] { background: #f7f8f4; border-right: 1px solid #dfe4dc; }
+h1 { letter-spacing: 0; color: #111827; font-weight: 800; font-size: 1.9rem; }
+h2, h3 { letter-spacing: 0; color: #182033; }
+.console-header { position: sticky; top: 4.25rem; z-index: 40; margin: 0 0 1.25rem 0; padding: 16px 20px; min-height: 76px; background: #11172a; color: #f8fafc; border-bottom: 4px solid #7c3aed; box-shadow: 0 8px 22px rgba(17, 24, 39, .12); display:flex; align-items:center; justify-content:space-between; gap:16px; border-radius: 0 0 10px 10px; overflow: visible; }
+.console-brand { display:flex; align-items:center; gap:12px; min-width: 280px; }
+.logo-mark { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; font-size:12px; font-weight:900; letter-spacing:.02em; }
+.console-title { font-size:17px; font-weight:800; line-height:1.1; }
+.console-trace { margin-top:4px; color:#9ca3af; font-size:11px; font-family:"IBM Plex Mono", Consolas, monospace; }
+.header-badges { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.badge { display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:7px 11px; font-size:11px; font-weight:800; background:rgba(255,255,255,.06); color:#f8fafc; font-family:"IBM Plex Mono", Consolas, monospace; }
+.dot { width:7px; height:7px; border-radius:999px; display:inline-block; box-shadow:0 0 0 3px rgba(255,255,255,.08); }
+.dot-green { background:#22c55e; animation:pulse 1.5s infinite; }
+.dot-yellow { background:#f59e0b; }
+.dot-blue { background:#60a5fa; }
+.dot-red { background:#ef4444; }
+@keyframes pulse { 0%{opacity:.55} 50%{opacity:1} 100%{opacity:.55} }
+.section-title { font-size:23px; line-height:1.25; font-weight:850; color:#111827; margin:.25rem 0 1rem; }
+.zone-label { display:inline-flex; align-items:center; gap:8px; margin:0 0 10px 0; font-size:13px; font-weight:850; color:#111827; }
+.zone-chip { background:#11172a; color:#fff; padding:4px 9px; border-radius:5px; font-size:10px; letter-spacing:.08em; font-family:"IBM Plex Mono", Consolas, monospace; }
+.state-box { border-left:5px solid #ef4444; padding:11px 13px; background:#fff5f6; border-radius:8px; margin-bottom:12px; box-shadow:0 1px 4px rgba(16,24,40,.04); }
+.state-ok { border-left-color:#16a34a; background:#f0fbf3; }
+.metric-card { border:1px solid #dfe4dc; border-radius:8px; padding:12px 14px; min-height:88px; box-shadow:0 2px 10px rgba(16,24,40,.035); overflow:hidden; }
+.metric-blue { background:#f3f7ff; }
+.metric-green { background:#e7f4ec; }
+.metric-amber { background:#fff7e8; }
+.metric-rose { background:#fff1f2; }
 .metric-gray { background:#f8fafc; }
-.metric-label { color:#475467; font-size:13px; font-weight:700; margin-bottom:8px; white-space:normal; }
-.metric-value { color:#202633; font-size:26px; line-height:1.1; font-weight:800; letter-spacing:0; overflow-wrap:anywhere; }
-.metric-delta { display:inline-block; color:#067647; background:#dff8e8; padding:2px 7px; border-radius:999px; font-size:12px; font-weight:700; margin-top:8px; }
-.metric-delta-warn { color:#b54708; background:#ffefd0; }
-div[data-testid="stMetric"] { background: #fff; border: 1px solid #eef0f3; border-radius: 8px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(16,24,40,.04); }
-.stButton > button { border-radius: 6px; border-color: #ff6b6b; color: #ff4b4b; font-weight: 700; }
-.stButton > button[kind="primary"] { background: #ff4b4b; color: white; border-color: #ff4b4b; }
-.stButton > button:disabled { border-color: #e5e7eb; color: #98a2b3; background: #f6f7f9; }
-.stTabs [data-baseweb="tab-highlight"] { background-color: #ff4b4b; }
-.stTabs [data-baseweb="tab"] { font-weight: 700; }
-.rec-card { background:#fff; border:1px solid #eef0f3; border-radius:8px; padding:12px 14px; box-shadow: 0 2px 10px rgba(16,24,40,.04); margin-bottom: 12px; }
-.rec-label { color:#475467; font-size:14px; font-weight:700; margin-bottom:4px; }
-.rec-value { color:#202633; font-size:24px; line-height:1.15; font-weight:800; letter-spacing:0; overflow-wrap:anywhere; }
+.metric-label { color:#4b5563; font-size:12.5px; font-weight:750; margin-bottom:8px; white-space:normal; }
+.metric-value { color:#111827; font-size:24px; line-height:1.1; font-weight:850; letter-spacing:0; overflow-wrap:anywhere; }
+.metric-delta { display:inline-block; color:#067647; background:#dff8e8; padding:2px 7px; border-radius:999px; font-size:11.5px; font-weight:750; margin-top:8px; }
+.metric-delta-warn { color:#a16207; background:#ffefd0; }
+.stepper { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; margin:8px 0 16px; }
+.step { text-align:center; border-radius:7px; padding:9px 6px; background:#e6ebe3; color:#55715f; font-size:10px; font-weight:850; font-family:"IBM Plex Mono", Consolas, monospace; }
+.step-done { background:#dcf0e5; color:#166534; }
+.step-active { background:#11172a; color:#fff; box-shadow:0 5px 16px rgba(17,23,42,.18); }
+.info-card { border:1px solid #dfe4dc; border-left:4px solid #7c3aed; background:#fbfaff; border-radius:8px; padding:12px 14px; margin:10px 0; color:#273142; font-size:13.5px; }
+.info-card strong { color:#111827; }
+.source-tag { display:inline-block; border-radius:5px; padding:3px 7px; font-size:10px; font-weight:850; margin-right:6px; font-family:"IBM Plex Mono", Consolas, monospace; }
+.tag-det { background:#e7f0ff; color:#1d4ed8; }
+.tag-gpt { background:#efe7ff; color:#6d28d9; }
+.rec-card { background:#fff; border:1px solid #dfe4dc; border-radius:8px; padding:12px 14px; box-shadow:0 2px 10px rgba(16,24,40,.035); margin-bottom:12px; }
+.rec-label { color:#4b5563; font-size:13px; font-weight:800; margin-bottom:4px; }
+.rec-value { color:#111827; font-size:22px; line-height:1.15; font-weight:850; letter-spacing:0; overflow-wrap:anywhere; }
 .rec-sub { color:#667085; font-size:12px; margin-top:4px; }
-.sidebar-block { border-top:1px solid #eef0f3; padding-top:14px; margin-top:14px; }
+div[data-testid="stMetric"] { background:#fff; border:1px solid #dfe4dc; border-radius:8px; padding:10px 12px; box-shadow:0 2px 10px rgba(16,24,40,.035); }
+.stButton > button { border-radius:7px; border-color:#d1d5db; color:#111827; font-weight:750; }
+.stButton > button[kind="primary"] { background:#11172a; color:white; border-color:#11172a; }
+.stButton > button:disabled { border-color:#e5e7eb; color:#98a2b3; background:#f6f7f9; }
+.stTabs [data-baseweb="tab-highlight"] { background-color:#7c3aed; }
+.stTabs [data-baseweb="tab"] { font-weight:750; }
+.sidebar-block { border-top:1px solid #e3e7df; padding-top:14px; margin-top:14px; }
+@media (max-width: 900px) { .console-header { position:relative; flex-direction:column; align-items:flex-start; } .stepper { grid-template-columns:1fr; } }
+header[data-testid="stHeader"] { background: #ffffff; z-index: 60; }
+div[data-testid="stToolbar"] { z-index: 70; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -142,6 +165,74 @@ def metric_card(label: str, value: str, delta: str | None = None, tone: str = "g
     )
 
 
+
+def render_console_header(openai_label: str, openai_class: str) -> None:
+    openai_dot = "dot-green" if openai_class == "good" else "dot-yellow"
+    st.markdown(
+        f"""
+        <div class="console-header">
+            <div class="console-brand">
+                <div class="logo-mark">MO</div>
+                <div>
+                    <div class="console-title">MIS-OPC · Governance Console</div>
+                    <div class="console-trace">TRACE-2026-CON004 · DEC-v1 · {datetime.now().strftime("%H:%M:%S")}</div>
+                </div>
+            </div>
+            <div class="header-badges">
+                <span class="badge"><span class="dot dot-green"></span>DATA: LIVE EXCEL</span>
+                <span class="badge"><span class="dot {openai_dot}"></span>OPENAI: {openai_label}</span>
+                <span class="badge"><span class="dot dot-yellow"></span>BANK API: MOCK</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def zone_heading(zone: str, title: str) -> None:
+    st.markdown(f'<div class="zone-label"><span class="zone-chip">{zone}</span>{title}</div>', unsafe_allow_html=True)
+
+
+def source_tag(label: str, kind: str = "det") -> None:
+    klass = "tag-gpt" if kind == "gpt" else "tag-det"
+    st.markdown(f'<span class="source-tag {klass}">{label}</span>', unsafe_allow_html=True)
+
+
+def info_card(title: str, body: str) -> None:
+    st.markdown(f'<div class="info-card"><strong>{title}</strong><br>{body}</div>', unsafe_allow_html=True)
+
+
+def render_stepper(final_state: str) -> None:
+    if final_state in {"ACTIVE", "REJECTED", "NEED_MORE_INFORMATION", "RENEGOTIATE"}:
+        active = "FINAL"
+    elif st.session_state.ap1_status != "approved":
+        active = "BLOCKED AP1"
+    elif st.session_state.ap2_status == "approved" and st.session_state.ap3_status == "approved" and st.session_state.ap4_status == "approved":
+        active = "DECISION READY"
+    else:
+        active = "PROPOSED"
+    labels = ["ANALYZED", "BLOCKED AP1", "PROPOSED", "DECISION READY", "FINAL"]
+    active_index = labels.index(active)
+    items = []
+    for index, label in enumerate(labels):
+        klass = "step-active" if index == active_index else "step-done" if index < active_index else ""
+        items.append(f'<div class="step {klass}">{label}</div>')
+    st.markdown('<div class="stepper">' + ''.join(items) + '</div>', unsafe_allow_html=True)
+
+
+def founder_next_step() -> str:
+    if detail_contract_id != "CON-004":
+        return "Đọc Finance/Risk evidence của hợp đồng này; Decision Card sâu hiện chỉ áp dụng cho CON-004."
+    if st.session_state.ap1_status != "approved":
+        return "Bước tiếp theo: duyệt AP-1 để tạm giữ cụm TXN-006/007 trước khi xem Decision Card đầy đủ."
+    if st.session_state.ap2_status != "approved" or st.session_state.ap3_status != "approved":
+        return "Bước tiếp theo: duyệt AP-2 vốn lưu động và AP-3 bảo lãnh trước khi gửi hồ sơ ra ngoài."
+    if st.session_state.ap4_status != "approved":
+        return "Bước tiếp theo: duyệt AP-4 để mở Bank API sandbox và chuẩn bị submission đã masking."
+    if st.session_state.final_state in {"ACTIVE", "REJECTED", "NEED_MORE_INFORMATION", "RENEGOTIATE"}:
+        return "Quyết định cuối đã được ghi nhận; kiểm tra runtime log để chứng minh state thay đổi thật."
+    return "Bước tiếp theo: chọn một quyết định cuối cùng: duyệt, từ chối, yêu cầu thêm thông tin hoặc đàm phán lại."
+
 @st.cache_data(show_spinner="Đang đọc Team Pack Excel trực tiếp...")
 def load_demo_data() -> tuple[dict, object, str, str]:
     team_pack = load_team_pack(WORKBOOK)
@@ -194,12 +285,7 @@ if selected_contract == "Tất cả hợp đồng":
 else:
     detail_contract_id = selected_contract
 agent_focus = st.sidebar.selectbox("Agent đang xem", ["Tất cả agent", "Finance & Data", "Risk & Compliance", "Decision & Partner"], index=0)
-use_openai = st.sidebar.toggle("Dùng OpenAI live", value=True, help="Gọi GPT-4o tại Decision & Partner Agent sau khi AP-1 được duyệt. Có fallback nếu API lỗi.")
-if os.getenv("OPENAI_API_KEY"):
-    st.sidebar.caption("OpenAI key: đã có trong môi trường. Không hiển thị key trên UI.")
-else:
-    st.sidebar.caption("OpenAI key: chưa thấy trong môi trường. App sẽ chạy fallback an toàn.")
-
+use_openai = bool(os.getenv("OPENAI_API_KEY"))
 finance = backend.finance.d5_handoff
 risk = backend.risk.d5_handoff
 if finance is None or risk is None:
@@ -209,7 +295,7 @@ initial_blocked = st.session_state.ap1_status != "approved" and backend.risk.fin
 decision_card = build_decision_card(
     backend,
     team_pack,
-    use_openai=use_openai and not initial_blocked,
+    use_openai=use_openai,
     ap1_status=st.session_state.ap1_status,
     ap2_status=st.session_state.ap2_status,
     ap3_status=st.session_state.ap3_status,
@@ -225,17 +311,9 @@ openai_label = {
     "fallback_after_invalid_schema": "DỰ PHÒNG: SCHEMA FAILED",
     "fallback_after_error": "DỰ PHÒNG SAU LỖI",
 }.get(llm_mode, llm_mode.upper())
-if initial_blocked:
-    openai_label = "CHỜ AP-1"
-openai_class = "good" if llm_mode == "live" and not initial_blocked else "warn"
+openai_class = "good" if llm_mode == "live" else "warn"
 
-st.title("Dashboard AI Agent OPC")
-st.markdown(
-    '<span class="badge good">DỮ LIỆU: EXCEL LIVE</span>'
-    f'<span class="badge {openai_class}">OPENAI: {openai_label}</span>'
-    '<span class="badge blue">BANK API: MOCK / SANDBOX</span>',
-    unsafe_allow_html=True,
-)
+render_console_header(openai_label, openai_class)
 st.caption(f"Tệp Excel: {WORKBOOK.name} | Mã hash dữ liệu: {workbook_hash} | Thời điểm phân tích: {loaded_at}")
 st.caption(f"Bộ lọc: {selected_period} · {selected_contract} · {agent_focus}")
 
@@ -416,10 +494,7 @@ if page == "Tổng quan":
     with c2:
         metric_card("Gói vốn đề xuất", money(finance.decision_package_total_ask_vnd), finance.worst_month, "blue")
     with c3:
-        if risk_visible(risk.transaction_hold_severity):
-            metric_card("Cụm giao dịch Critical", money(risk.transaction_hold_amount_vnd), "TXN-006 / TXN-007", "rose", warn=True)
-        else:
-            metric_card("Cụm giao dịch Critical", "đã lọc ẩn", "filter mức rủi ro", "gray")
+        metric_card("Cụm giao dịch Critical", money(risk.transaction_hold_amount_vnd), "TXN-006 / TXN-007", "rose", warn=True)
     with c4:
         metric_card("Hồ sơ tín dụng", f"{len(active_candidates)} xét", f"{len(held_candidates)} tạm giữ", "green")
 
@@ -450,7 +525,8 @@ elif page == "Chi tiết hợp đồng":
     st.markdown(f'<div class="section-title">Chi tiết {detail_contract_id} - Không gian quyết định 3 vùng</div>', unsafe_allow_html=True)
     if selected_contract == "Tất cả hợp đồng":
         st.info(f"Bạn đang chọn toàn bộ portfolio; trang chi tiết đang mở mặc định {detail_contract_id}. Chọn từng hợp đồng ở sidebar để drill-down case khác.")
-    z1, z2, z3 = st.columns([0.25, 0.35, 0.40], gap="medium")
+    render_stepper(decision_card["state"] if detail_contract_id == "CON-004" else "DECISION_READY")
+    z1, z2, z3 = st.columns([0.28, 0.36, 0.36], gap="medium")
 
     with z1:
         st.markdown("### Vùng 1")
@@ -516,9 +592,15 @@ elif page == "Chi tiết hợp đồng":
             else:
                 st.info("Workbook chưa có credit case chuyên biệt cho hợp đồng này.")
             if detail_contract_id == "CON-004" and not blocked:
-                st.dataframe(pd.DataFrame(decision_card["bank_fit_matrix"]), use_container_width=True, hide_index=True)
-                st.markdown("**OpenAI/GPT-4o reasoning**")
-                st.json(decision_card.get("llm_meta", {}))
+                info_card(
+                    "Cách đọc bank fit matrix",
+                    "CR-004 là bridge nhỏ phù hợp nhất; CR-001/CR-002 là gói chính cần Founder approval; CR-003 bị giữ vì thiếu supplier confirmation.",
+                )
+                fit_df = pd.DataFrame(decision_card["bank_fit_matrix"])
+                fit_cols = [col for col in ["credit_case_id", "bank_product_id", "fit_status", "collateral_vnd", "collateral_basis"] if col in fit_df.columns]
+                st.dataframe(fit_df[fit_cols], use_container_width=True, hide_index=True)
+                with st.expander("Xem OpenAI/GPT-4o runtime metadata", expanded=False):
+                    st.json(decision_card.get("llm_meta", {}))
             elif detail_contract_id != "CON-004":
                 st.caption("Decision Card đầy đủ/AP queue chỉ có dữ liệu sâu cho CON-004; các hợp đồng khác đang hiển thị precheck từ Finance/Risk/credit case.")
 
@@ -557,6 +639,10 @@ elif page == "Chi tiết hợp đồng":
         with tab2:
             cash = pd.DataFrame([m.model_dump() for m in filtered_cashflow_rows()])
             st.line_chart(cash.set_index("month")[["funding_need_vnd", "reserve_gap_vnd"]])
+            info_card(
+                "Cashflow insight",
+                f"Kỳ đang xem: {selected_period}. Funding need và reserve gap cho thấy áp lực dòng tiền vẫn cần gói tín dụng trước tháng phục hồi `{decision_card.get('upside_if_conditions_met', {}).get('recovery_month', 'n/a')}`.",
+            )
         with tab3:
             cases = related_credit_cases(detail_contract_id)
             st.dataframe(cases, use_container_width=True, hide_index=True)
@@ -727,7 +813,7 @@ else:
         "output": ["conflicts_detected", "conditions", "rationale"],
         "mode_runtime": decision_card.get("llm_meta", {}),
         "fallback_policy": (
-            "Thiếu OPENAI_API_KEY dùng deterministic fallback; output sai schema ghi "
+            "Có OPENAI_API_KEY thì gọi GPT-4o live; thiếu key hoặc API lỗi thì dùng deterministic fallback; output sai schema ghi "
             "fallback_after_invalid_schema/FAILED; lỗi trước validate ghi "
             "fallback_after_error/NOT_RUN."
         ),
@@ -736,5 +822,6 @@ else:
     st.json(decision_card)
     st.markdown("#### Xem trước runtime log")
     st.json(build_sample_runtime_log(decision_card))
+
 
 

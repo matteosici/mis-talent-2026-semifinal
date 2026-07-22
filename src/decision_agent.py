@@ -238,13 +238,11 @@ def build_bank_fit_matrix(backend: DS1BackendOutput, bank_products: list[dict[st
     for credit_case_id, mapping in BANK_PRODUCT_MAPPING.items():
         candidate = candidates.get(credit_case_id)
         product = products_by_id.get(mapping["bank_product_id"], {})
-        collateral_vnd, collateral_basis, demo_note = _resolve_collateral(
-            product,
-            mapping,
-        )
+        requested_amount = candidate.requested_amount_vnd if candidate else None
+        collateral_vnd, collateral_basis, demo_note = _resolve_collateral(product, mapping)
         matrix.append({
             "credit_case_id": credit_case_id,
-            "requested_amount_vnd": candidate.requested_amount_vnd if candidate else None,
+            "requested_amount_vnd": requested_amount,
             "eligibility_score": candidate.eligibility_score if candidate else None,
             "candidate_status": candidate.candidate_status if candidate else "hold",
             "bank_product_id": mapping["bank_product_id"],
@@ -262,59 +260,200 @@ def build_bank_fit_matrix(backend: DS1BackendOutput, bank_products: list[dict[st
     return matrix
 
 
+def _candidate_by_id(backend: DS1BackendOutput, credit_case_id: str):
+    return next(
+        (
+            item
+            for item in backend.finance.credit_candidates
+            if item.credit_case_id == credit_case_id
+        ),
+        None,
+    )
+
+
+def _con004_margin(backend: DS1BackendOutput):
+    return next(
+        (
+            item
+            for item in backend.finance.margin_analysis
+            if item.contract_id == "CON-004"
+        ),
+        None,
+    )
+
+
+def _recovery_cashflow(backend: DS1BackendOutput):
+    positive_month = next(
+        (
+            month
+            for month in backend.finance.cashflow.months
+            if month.closing_cash_vnd > 0
+        ),
+        None,
+    )
+    return positive_month or backend.finance.cashflow.months[-1]
+
+
+def _safe_customer_token(backend: DS1BackendOutput) -> str:
+    note = next(
+        (
+            item
+            for item in backend.risk.safe_handling_notes
+            if item.field_name == "customer_id"
+        ),
+        None,
+    )
+    return (note.tokenized_value or note.masked_value) if note else "[REDACTED]"
+
+
+def _decision_breakdown(
+    backend: DS1BackendOutput,
+    bank_fit_matrix: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    plan = backend.finance.credit_plan
+    product_by_credit = {
+        item["credit_case_id"]: item["bank_product_id"] for item in bank_fit_matrix
+    }
+    candidates = {
+        item.credit_case_id: item for item in backend.finance.credit_candidates
+    }
+    if plan is None:
+        return []
+    breakdown = []
+    for credit_id in plan.decision_package_credit_case_ids:
+        candidate = candidates.get(credit_id)
+        if candidate is None:
+            continue
+        breakdown.append(
+            {
+                "credit_id": credit_id,
+                "amount": candidate.requested_amount_vnd,
+                "bank_product": product_by_credit.get(credit_id),
+            }
+        )
+    return breakdown
+
+
+def _approval_amounts(backend: DS1BackendOutput) -> dict[str, int]:
+    return {
+        item.credit_case_id: item.requested_amount_vnd
+        for item in backend.finance.credit_candidates
+    }
+
+
+def _risks_remaining(backend: DS1BackendOutput) -> list[dict[str, Any]]:
+    risks: list[dict[str, Any]] = []
+    for flag in backend.risk.credit_risk_flags:
+        risks.append(
+            {
+                "description": (
+                    f"{flag.credit_case_id} eligibility {flag.eligibility_score:g} "
+                    f"< {flag.threshold:g}"
+                ),
+                "rule_ref": flag.rule_id,
+                "severity": "Medium" if flag.disposition == "borderline" else "High",
+            }
+        )
+    for item in backend.risk.execution_risks:
+        risks.append(
+            {
+                "description": (
+                    f"{item.order_id} {item.status}; phạt "
+                    f"{_money(item.potential_penalty_vnd_per_day)}/ngày nếu trễ "
+                    f"quá {item.late_delivery_days_threshold} ngày"
+                ),
+                "rule_ref": item.rule_id,
+                "severity": "High" if item.systemic else "Medium",
+            }
+        )
+    return risks
+
+
+def _missing_evidence(backend: DS1BackendOutput) -> list[dict[str, Any]]:
+    missing = []
+    for candidate in backend.finance.credit_candidates:
+        if candidate.evidence_missing:
+            missing.append(
+                {
+                    "description": (
+                        f"Thiếu bằng chứng cho {candidate.credit_case_id}: "
+                        f"{candidate.precheck_note}"
+                    ),
+                    "blocks": [candidate.credit_case_id],
+                }
+            )
+    return missing
+
+
 def _fallback_openai_result(backend: DS1BackendOutput) -> OpenAIResult:
     finance = backend.finance.d5_handoff
     risk = backend.risk.d5_handoff
+    if finance is None or risk is None:
+        raise ValueError("Finance/Risk handoff is required before Decision Agent synthesis.")
+
     txn_ids = risk.transaction_hold.txn_ids if risk.transaction_hold else []
-    candidate_ids = list(finance.credit_candidate_ids or [])
-    candidate_by_id = {
-        item.credit_case_id: item for item in backend.finance.credit_candidates
-    }
+    candidate_by_id = {item.credit_case_id: item for item in backend.finance.credit_candidates}
     package_ids = (
         list(backend.finance.credit_plan.decision_package_credit_case_ids)
         if backend.finance.credit_plan
-        else candidate_ids
+        else list(finance.credit_candidate_ids or [])
     )
-    package_ids = [item for item in package_ids if item in candidate_ids]
+    package_ids = [item for item in package_ids if item in candidate_by_id]
     credit_conditions = [
         (
-            f"AP-{index}: Founder phê duyệt hồ sơ {credit_case_id} trị giá "
-            f"{_money(candidate_by_id[credit_case_id].requested_amount_vnd if credit_case_id in candidate_by_id else None)}."
+            f"AP-{index}: Founder cân nhắc phê duyệt {credit_case_id} "
+            f"({_money(candidate_by_id[credit_case_id].requested_amount_vnd)}) nếu bằng chứng đã đủ."
         )
         for index, credit_case_id in enumerate(package_ids, start=2)
     ]
-    credit_flag = next(iter(backend.risk.credit_risk_flags), None)
+
+    borderline = next(
+        (
+            item
+            for item in backend.risk.credit_risk_flags
+            if item.disposition == "borderline"
+        ),
+        next(iter(backend.risk.credit_risk_flags), None),
+    )
     conflicts = []
-    if credit_flag:
+    if borderline:
         conflicts.append({
             "description": (
-                f"Finance vẫn giữ {credit_flag.credit_case_id} trong danh sách candidate, "
-                f"trong khi Risk flag {credit_flag.rule_id} vì eligibility "
-                f"{credit_flag.eligibility_score:.2f} thấp hơn ngưỡng {credit_flag.threshold:.2f}."
+                f"Finance vẫn giữ {borderline.credit_case_id} trong danh sách candidate, "
+                f"nhưng Risk flag {borderline.rule_id} vì eligibility "
+                f"{borderline.eligibility_score:g} thấp hơn ngưỡng {borderline.threshold:g}."
             ),
             "resolution_note": (
-                f"Giữ {credit_flag.credit_case_id} ở trạng thái có điều kiện, gắn uncertainty "
-                "và yêu cầu Founder phê duyệt thay vì âm thầm loại bỏ."
+                "Giữ ở trạng thái có điều kiện, hiển thị uncertainty và yêu cầu Founder quyết định thay vì tự loại bỏ."
             ),
         })
+    else:
+        conflicts.append({
+            "description": "Không phát hiện mâu thuẫn trọng yếu giữa Finance và Risk.",
+            "resolution_note": "Tiếp tục dùng structured handoff và giữ approval gate bắt buộc.",
+        })
+
+    con004 = _con004_margin(backend)
+    rationale = (
+        "Việc cần làm tiếp cho Founder: xử lý AP-1 trước để đóng băng cụm giao dịch rủi ro, "
+        f"sau đó duyệt tuần tự gói tín dụng {_money(finance.decision_package_total_ask_vnd)}. "
+        "Nếu các điều kiện này hoàn tất, CON-004 đáng tiếp tục vì upside ước tính "
+        f"{_money((con004.gross_profit_vnd if con004 else None))}; nếu thiếu bằng chứng hoặc AP nào chưa xong, "
+        "không chuyển hồ sơ sang Active."
+    )
     return OpenAIResult(
         conflicts_detected=conflicts,
         conditions=[
             (
                 "AP-1: Founder xác nhận tạm giữ "
-                f"{('/'.join(txn_ids) if txn_ids else 'cụm giao dịch được Risk Agent flag')} "
+                f"{('/'.join(txn_ids) if txn_ids else 'cụm giao dịch RR-001')} "
                 "trước mọi thao tác gửi hồ sơ tài chính."
             ),
             *credit_conditions,
-            "AP-4: Founder phê duyệt gửi hồ sơ ra VietinBank sau khi dữ liệu đã được masking/tokenization.",
+            "AP-4: Founder phê duyệt gửi hồ sơ ra đối tác sau khi dữ liệu đã được masking/tokenization.",
             "AP-5: Founder ra quyết định cuối cùng cho CON-004: nhận, từ chối hoặc đàm phán lại.",
         ],
-        rationale=(
-            "Nên khuyến nghị có điều kiện với CON-004 vì hợp đồng có thể tạo ra "
-            "1.008B VND lợi nhuận gộp và giúp dòng tiền tháng 9 phục hồi, nhưng hệ thống "
-            f"phải xử lý trước {_money(risk.transaction_hold_amount_vnd)} giao dịch đáng ngờ đang chờ tạm giữ, "
-            f"phê duyệt {_money(finance.decision_package_total_ask_vnd)} gói tín dụng, đồng thời giữ CR-003 ở trạng thái tạm giữ cho tới khi có xác nhận nhà cung cấp."
-        ),
+        rationale=rationale,
         llm_meta={"model": os.getenv("OPENAI_MODEL", "gpt-4o"), "mode": "fallback", "confidence": 0.78, "response_id": None, "latency_ms": 0, "schema_validation": "PASSED"},
     )
 
@@ -427,19 +566,18 @@ def build_decision_card(
     llm = _call_openai_for_narrative(backend, bank_fit_matrix) if use_openai else _fallback_openai_result(backend)
     finance = backend.finance.d5_handoff
     risk = backend.risk.d5_handoff
-    candidate_by_id = {
-        item.credit_case_id: item for item in backend.finance.credit_candidates
-    }
+    if finance is None or risk is None:
+        raise ValueError("Finance/Risk handoff is required before Decision Agent synthesis.")
+
+    candidate_by_id = {item.credit_case_id: item for item in backend.finance.credit_candidates}
     package_ids = (
         list(backend.finance.credit_plan.decision_package_credit_case_ids)
         if backend.finance.credit_plan
         else list(finance.credit_candidate_ids or [])
     )
-    bank_fit_by_credit_id = {
-        item["credit_case_id"]: item for item in bank_fit_matrix
-    }
-    financial_breakdown = []
-    package_collateral_rows = []
+    bank_fit_by_credit_id = {item["credit_case_id"]: item for item in bank_fit_matrix}
+    financial_breakdown: list[dict[str, Any]] = []
+    package_collateral_rows: list[dict[str, Any]] = []
     for credit_case_id in package_ids:
         candidate = candidate_by_id.get(credit_case_id)
         fit = bank_fit_by_credit_id.get(credit_case_id, {})
@@ -462,26 +600,26 @@ def build_decision_card(
         if collateral_bases
         else None
     )
+
     txn_ids = risk.transaction_hold.txn_ids if risk.transaction_hold else []
-    transaction_hold_subject = (
-        "/".join(txn_ids) if txn_ids else "cụm giao dịch được Risk Agent flag"
-    )
-    ap5_status = (
-        "approved"
-        if final_state in {"ACTIVE", "REJECTED", "RENEGOTIATE"}
-        else "pending"
-    )
+    transaction_hold_subject = "/".join(txn_ids) if txn_ids else "cụm giao dịch RR-001"
+    con004 = _con004_margin(backend)
+    recovery = _recovery_cashflow(backend)
+    ap5_status = {
+        "ACTIVE": "approved",
+        "REJECTED": "rejected",
+        "NEED_MORE_INFORMATION": "need_more_information",
+        "RENEGOTIATE": "renegotiate",
+    }.get(final_state, "pending")
     approval_required = [
         {"id": "AP-1", "description": f"Tạm giữ {transaction_hold_subject}", "amount": risk.transaction_hold_amount_vnd, "status": ap1_status, "blocks": ["AP-2", "AP-3", "AP-4", "AP-5"]},
-        {"id": "AP-2", "description": "Phê duyệt vốn lưu động CR-001", "amount": 950_000_000, "status": ap2_status, "blocks": ["AP-4", "AP-5"]},
-        {"id": "AP-3", "description": "Phê duyệt bảo lãnh thực hiện CR-002", "amount": 420_000_000, "status": ap3_status, "blocks": ["AP-4", "AP-5"]},
+        {"id": "AP-2", "description": "Phê duyệt vốn lưu động CR-001", "amount": candidate_by_id.get("CR-001").requested_amount_vnd if candidate_by_id.get("CR-001") else 0, "status": ap2_status, "blocks": ["AP-4", "AP-5"]},
+        {"id": "AP-3", "description": "Phê duyệt bảo lãnh thực hiện CR-002", "amount": candidate_by_id.get("CR-002").requested_amount_vnd if candidate_by_id.get("CR-002") else 0, "status": ap3_status, "blocks": ["AP-4", "AP-5"]},
         {"id": "AP-4", "description": "Phê duyệt gửi hồ sơ ngoài qua API-002", "amount": None, "status": ap4_status, "blocks": ["AP-5"]},
-        {"id": "AP-5", "description": "Quyết định nhận/ký CON-004", "amount": 4_200_000_000, "status": ap5_status, "blocks": []},
+        {"id": "AP-5", "description": "Quyết định nhận/ký CON-004", "amount": next((item.contract_value_vnd for item in backend.finance.margin_analysis if item.contract_id == "CON-004"), None), "status": ap5_status, "blocks": []},
     ]
     candidate_ids = set(finance.credit_candidate_ids or [])
-    assessment_by_id = {
-        item.credit_case_id: item for item in backend.risk.credit_assessments
-    }
+    assessment_by_id = {item.credit_case_id: item for item in backend.risk.credit_assessments}
     evidence_missing_any = any(
         assessment_by_id[credit_case_id].evidence_missing
         for credit_case_id in candidate_ids
@@ -497,14 +635,14 @@ def build_decision_card(
         "decision_version": DECISION_VERSION,
         "contract_id": "CON-004",
         "contract_name": "Cooperative Network Rollout - 20-Province Expansion",
-        "customer_name_masked": "TOK-CUS-A91F",
+        "customer_name_masked": _safe_customer_token(backend),
         "state": final_state,
         "recommendation": recommendation,
         "financial_ask": {"breakdown": financial_breakdown, "total": finance.decision_package_total_ask_vnd, "collateral_total": sum(item["collateral_vnd"] for item in package_collateral_rows), "collateral_total_basis": collateral_total_basis, "cost_estimate_per_period": 67_000_000},
         "bank_fit_matrix": bank_fit_matrix,
-        "risks_remaining": [{"description": "CR-002 eligibility 0.63 < 0.65", "rule_ref": "RR-006", "severity": "Medium"}, {"description": "ORD-004 có rủi ro triển khai; phạt 4.65 triệu VND/ngày nếu trễ quá 7 ngày", "rule_ref": "RR-007", "severity": "High"}],
-        "missing_evidence": [{"description": "Thiếu xác nhận nhà cung cấp cho CR-003/CON-005", "blocks": ["CR-003"]}],
-        "upside_if_conditions_met": {"gross_profit_vnd": 1_008_000_000, "recovery_month": "2026-09", "recovery_closing_cash_vnd": 350_000_000, "narrative": "OPC thoát vòng lặp thiếu dòng tiền; dòng tiền dự phóng chuyển dương từ tháng 9."},
+        "risks_remaining": _risks_remaining(backend),
+        "missing_evidence": _missing_evidence(backend),
+        "upside_if_conditions_met": {"gross_profit_vnd": None if con004 is None else con004.gross_profit_vnd, "recovery_month": recovery.month, "recovery_closing_cash_vnd": recovery.closing_cash_vnd, "narrative": "OPC thoát vòng lặp thiếu dòng tiền nếu các điều kiện phê duyệt được xử lý đúng thứ tự."},
         "approval_required": approval_required,
         "masked_fields": ["customer_id", "account_id", "contract_value", "access_token"],
         "human_approval_id": human_approval_id,
@@ -514,4 +652,3 @@ def build_decision_card(
         "rationale": llm.rationale,
         "llm_meta": llm.llm_meta,
     }
-

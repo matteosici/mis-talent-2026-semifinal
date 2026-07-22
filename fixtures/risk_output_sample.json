@@ -439,6 +439,11 @@
       "action": "temporary_hold",
       "approver": "founder_confirmation_required"
     },
+    "transaction_hold_source": "cluster",
+    "transaction_hold_txn_ids": [
+      "TXN-006",
+      "TXN-007"
+    ],
     "transaction_hold_amount_vnd": 178000000,
     "transaction_hold_severity": "Critical",
     "approval_requirement_record_ids": [
