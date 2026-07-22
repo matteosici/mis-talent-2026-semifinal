@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from pathlib import Path
+import os
 import sys
 
 ROOT = Path(__file__).parents[1]
@@ -22,7 +23,7 @@ def main() -> None:
     decision_card = build_decision_card(
         backend,
         team_pack,
-        use_openai=False,
+        use_openai=bool(os.getenv("OPENAI_API_KEY")),
         ap1_status="approved",
         final_state="DECISION_READY",
         human_approval_id="APR-001",
@@ -45,6 +46,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
 

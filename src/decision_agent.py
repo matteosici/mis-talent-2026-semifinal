@@ -492,33 +492,66 @@ def _strip_json_fence(value: str) -> str:
 def _call_openai_for_narrative(backend: DS1BackendOutput, bank_fit_matrix: list[dict[str, Any]]) -> OpenAIResult:
     if not os.getenv("OPENAI_API_KEY"):
         return _fallback_openai_result(backend)
+
     started = time.perf_counter()
+    model = os.getenv("OPENAI_MODEL", "gpt-4o")
     try:
         from openai import OpenAI
+
         client = OpenAI(timeout=30)
         prompt_payload = {
             "finance_handoff": backend.finance.d5_handoff.model_dump(mode="json"),
             "risk_handoff": backend.risk.d5_handoff.model_dump(mode="json"),
             "bank_fit_matrix": bank_fit_matrix,
         }
+        narrative_schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "conflicts_detected": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "description": {"type": "string"},
+                            "resolution_note": {"type": "string"},
+                        },
+                        "required": ["description", "resolution_note"],
+                    },
+                },
+                "conditions": {"type": "array", "items": {"type": "string"}},
+                "rationale": {"type": "string"},
+            },
+            "required": ["conflicts_detected", "conditions", "rationale"],
+        }
         response = client.responses.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+            model=model,
             input=(
                 "You are the Decision & Partner Agent for the OPC MIS Talent prototype. "
                 "Use only structured data. Do not invent money figures, IDs, approvals, or customers. "
-                "Return strict JSON with keys conflicts_detected, conditions, rationale.\n\n"
+                "Return Vietnamese JSON that follows the provided schema exactly. "
+                "conflicts_detected must contain objects with description and resolution_note. "
+                "conditions must be concise action conditions. rationale must be one concise paragraph.\n\n"
                 + json.dumps(prompt_payload, ensure_ascii=False)
             ),
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "decision_narrative",
+                    "schema": narrative_schema,
+                    "strict": True,
+                }
+            },
             temperature=0,
             max_output_tokens=1500,
         )
-        parsed = json.loads(
-            _strip_json_fence(getattr(response, "output_text", ""))
-        )
+        parsed = json.loads(_strip_json_fence(getattr(response, "output_text", "")))
         conflicts = parsed.get("conflicts_detected") if isinstance(parsed, dict) else None
         conditions = parsed.get("conditions") if isinstance(parsed, dict) else None
         rationale = parsed.get("rationale") if isinstance(parsed, dict) else None
         latency_ms = int((time.perf_counter() - started) * 1000)
+
         if not _validate_narrative(conflicts, conditions, rationale):
             fallback = _fallback_openai_result(backend)
             return OpenAIResult(
@@ -527,6 +560,7 @@ def _call_openai_for_narrative(backend: DS1BackendOutput, bank_fit_matrix: list[
                 rationale=fallback.rationale,
                 llm_meta={
                     **fallback.llm_meta,
+                    "model": model,
                     "mode": "fallback_after_invalid_schema",
                     "response_id": getattr(response, "id", None),
                     "latency_ms": latency_ms,
@@ -534,21 +568,34 @@ def _call_openai_for_narrative(backend: DS1BackendOutput, bank_fit_matrix: list[
                     "safe_failure_reason": "invalid_narrative_schema",
                 },
             )
+
         return OpenAIResult(
             conflicts_detected=conflicts,
             conditions=conditions,
             rationale=rationale,
-            llm_meta={"model": os.getenv("OPENAI_MODEL", "gpt-4o"), "mode": "live", "confidence": 0.82, "response_id": getattr(response, "id", None), "latency_ms": latency_ms, "schema_validation": "PASSED"},
+            llm_meta={
+                "model": model,
+                "mode": "live",
+                "confidence": 0.82,
+                "response_id": getattr(response, "id", None),
+                "latency_ms": latency_ms,
+                "schema_validation": "PASSED",
+            },
         )
-    except Exception as exc:
+    except Exception as exc:  # pragma: no cover - depends on external API/network
         fallback = _fallback_openai_result(backend)
         return OpenAIResult(
             conflicts_detected=fallback.conflicts_detected,
             conditions=fallback.conditions,
             rationale=fallback.rationale,
-            llm_meta={**fallback.llm_meta, "mode": "fallback_after_error", "schema_validation": "NOT_RUN", "safe_failure_reason": exc.__class__.__name__},
+            llm_meta={
+                **fallback.llm_meta,
+                "model": model,
+                "mode": "fallback_after_error",
+                "schema_validation": "NOT_RUN",
+                "safe_failure_reason": exc.__class__.__name__,
+            },
         )
-
 
 def build_decision_card(
     backend: DS1BackendOutput,
@@ -652,3 +699,5 @@ def build_decision_card(
         "rationale": llm.rationale,
         "llm_meta": llm.llm_meta,
     }
+
+

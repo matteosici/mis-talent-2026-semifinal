@@ -1,6 +1,6 @@
 [
   {
-    "timestamp": "2026-07-21T11:44:35+00:00",
+    "timestamp": "2026-07-22T07:32:28+00:00",
     "trace_id": "TRACE-2026-CON004",
     "agent_name": "Finance & Data Agent",
     "event_type": "observe",
@@ -14,7 +14,7 @@
     "safe_failure_reason": null
   },
   {
-    "timestamp": "2026-07-21T11:44:35+00:00",
+    "timestamp": "2026-07-22T07:32:28+00:00",
     "trace_id": "TRACE-2026-CON004",
     "agent_name": "Risk & Compliance Agent",
     "event_type": "reason",
@@ -31,7 +31,7 @@
     "safe_failure_reason": null
   },
   {
-    "timestamp": "2026-07-21T11:44:35+00:00",
+    "timestamp": "2026-07-22T07:32:28+00:00",
     "trace_id": "TRACE-2026-CON004",
     "agent_name": "Founder",
     "event_type": "approval",
@@ -48,26 +48,26 @@
     "safe_failure_reason": null
   },
   {
-    "timestamp": "2026-07-21T11:44:35+00:00",
+    "timestamp": "2026-07-22T07:32:28+00:00",
     "trace_id": "TRACE-2026-CON004",
     "agent_name": "Decision & Partner Agent",
     "event_type": "tool_call",
     "tool_or_api_id": "OPENAI_DECISION_CARD",
-    "request_id": "REQ-LLM-FALLBACK",
+    "request_id": "resp_016599d910393664006a60720779cc819ba06813e37d38018d",
     "masked_fields": [
       "customer_id",
       "account_id",
       "contract_value",
       "access_token"
     ],
-    "response_status": "fallback",
+    "response_status": "live",
     "retry_count": 0,
     "human_approval_id": null,
     "decision_version": "DEC-v1",
     "safe_failure_reason": null
   },
   {
-    "timestamp": "2026-07-21T11:44:35+00:00",
+    "timestamp": "2026-07-22T07:32:28+00:00",
     "trace_id": "TRACE-2026-CON004",
     "agent_name": "Decision & Partner Agent",
     "event_type": "reflection",
