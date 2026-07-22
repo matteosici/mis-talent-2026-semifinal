@@ -4,5 +4,4 @@ __pycache__/
 *.py[cod]
 .env
 output/
-submission/prototype_credentials.txt
 .streamlit/secrets.toml
