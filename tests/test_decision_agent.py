@@ -245,6 +245,29 @@ def test_runtime_log_defaults_schema_validation_to_not_run():
     assert schema_event["response_status"] == "NOT_RUN"
 
 
+def test_runtime_log_marks_cached_narrative_as_cache_hit():
+    events = build_sample_runtime_log(
+        {
+            "masked_fields": ["customer_id"],
+            "llm_meta": {
+                "mode": "live",
+                "cache_status": "HIT",
+                "response_id": "resp-cached",
+                "schema_validation": "PASSED",
+            },
+        }
+    )
+    decision_event = next(
+        item
+        for item in events
+        if item["tool_or_api_id"] == "OPENAI_DECISION_CARD_CACHE"
+    )
+
+    assert decision_event["event_type"] == "cache_hit"
+    assert decision_event["request_id"] == "resp-cached"
+    assert decision_event["response_status"] == "live"
+
+
 def test_build_decision_card_syncs_approval_status_and_final_state(
     backend,
     team_pack,

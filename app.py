@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import html
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -12,7 +13,12 @@ import pandas as pd
 import streamlit as st
 
 from src.agents import run_ds1_backend
-from src.decision_agent import CREDIT_TO_API, build_decision_card, call_bank_api_mock
+from src.decision_agent import (
+    CREDIT_TO_API,
+    build_bank_fit_matrix,
+    build_decision_card,
+    call_bank_api_mock,
+)
 from src.runtime_log import build_sample_runtime_log, write_json
 from src.security import _stable_token
 from src.team_pack import (
@@ -28,6 +34,13 @@ LOCAL_WORKBOOK = ROOT / DEFAULT_WORKBOOK
 EXTERNAL_V3_WORKBOOK = ROOT.parent / "MISTalent2026_OPC_AgenticAI_TeamPack_v3.xlsx"
 WORKBOOK = EXTERNAL_V3_WORKBOOK if EXTERNAL_V3_WORKBOOK.exists() else LOCAL_WORKBOOK
 POLICY = ROOT / "config" / "policies.yaml"
+OPENAI_NARRATIVE_CACHE_VERSION = "decision-narrative-v1"
+OPENAI_NARRATIVE_FIELDS = (
+    "conflicts_detected",
+    "conditions",
+    "rationale",
+    "llm_meta",
+)
 
 st.set_page_config(
     page_title="MIS-OPC Governance Console",
@@ -215,6 +228,33 @@ def object_dump(obj: Any) -> dict[str, Any]:
     return dict(getattr(obj, "__dict__", {}))
 
 
+def openai_narrative_signature(
+    backend: Any,
+    team_pack: dict[str, Any],
+    model: str,
+) -> str:
+    """Fingerprint only the deterministic inputs sent to the narrative model."""
+
+    prompt_payload = {
+        "cache_version": OPENAI_NARRATIVE_CACHE_VERSION,
+        "model": model,
+        "finance_handoff": object_dump(backend.finance.d5_handoff),
+        "risk_handoff": object_dump(backend.risk.d5_handoff),
+        "bank_fit_matrix": build_bank_fit_matrix(
+            backend,
+            team_pack.get("11_BANK_PRODUCTS", []),
+        ),
+    }
+    encoded = json.dumps(
+        prompt_payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def df_from_sheet(team_pack: dict[str, Any], sheet: str) -> pd.DataFrame:
     data = team_pack.get(sheet, [])
     return pd.DataFrame(data)
@@ -385,8 +425,16 @@ def render_runtime_evidence(card: dict[str, Any]) -> None:
     if st.session_state.ap4_status == "approved":
         events.append((now, "BANK_API", "AP-4 released sandbox precheck"))
     if st.session_state.ap1_status == "approved":
-        mode = str(card.get("llm_meta", {}).get("mode", "fallback")).upper()
-        events.append((now, "OPENAI", f"{mode} synthesis completed"))
+        llm_meta = card.get("llm_meta", {})
+        mode = str(llm_meta.get("mode", "fallback")).upper()
+        cache_status = str(llm_meta.get("cache_status", "BYPASS")).upper()
+        if cache_status == "HIT":
+            message = f"{mode} narrative reused · SESSION CACHE"
+        elif cache_status == "MISS":
+            message = f"{mode} synthesis completed · API CALL"
+        else:
+            message = f"{mode} deterministic narrative · NO API CALL"
+        events.append((now, "OPENAI", message))
     rows = "".join(
         f'<div class="runtime-row"><span class="runtime-time">{esc(ts)}</span><span class="runtime-agent">{esc(agent)}</span><span>{esc(message)}</span></div>'
         for ts, agent, message in events
@@ -411,10 +459,17 @@ def render_openai_evidence(card: dict[str, Any]) -> None:
     confidence = float(meta.get("confidence") or 0)
     latency = meta.get("latency_ms")
     latency_text = f"{float(latency) / 1000:.1f}s" if latency is not None else "n/a"
+    cache_status = str(meta.get("cache_status", "BYPASS")).upper()
+    narrative_source = {
+        "MISS": "API CALL",
+        "HIT": "SESSION CACHE",
+        "BYPASS": "DETERMINISTIC",
+    }.get(cache_status, cache_status)
     st.markdown(
         f'''<div class="evidence-card">
             <div class="evidence-line"><span>Status</span><span class="evidence-good">{esc(mode)}</span></div>
             <div class="evidence-line"><span>Model</span><span>{esc(meta.get("model", "gpt-4o"))}</span></div>
+            <div class="evidence-line"><span>Narrative source</span><span>{esc(narrative_source)}</span></div>
             <div class="evidence-line"><span>Latency</span><span>{esc(latency_text)}</span></div>
             <div class="evidence-line"><span>Schema validation</span><span class="evidence-good">{esc(schema)}</span></div>
             <div style="padding-top:7px"><div class="evidence-line" style="border:0;padding:0"><span>Confidence</span><span>{confidence:.2f}</span></div>
@@ -517,6 +572,8 @@ if "action_toast" not in st.session_state:
     st.session_state.action_toast = None
 if "bank_api_response" not in st.session_state:
     st.session_state.bank_api_response = None
+if "openai_narrative_cache" not in st.session_state:
+    st.session_state.openai_narrative_cache = None
 if st.session_state.action_toast:
     st.toast(st.session_state.action_toast)
     st.session_state.action_toast = None
@@ -534,23 +591,89 @@ if selected_contract == "Tất cả hợp đồng":
 else:
     detail_contract_id = selected_contract
 agent_focus = st.sidebar.selectbox("Agent đang xem", ["Tất cả agent", "Finance & Data", "Risk & Compliance", "Decision & Partner"], index=0)
-use_openai = bool(os.getenv("OPENAI_API_KEY"))
+openai_enabled = bool(os.getenv("OPENAI_API_KEY"))
+openai_model = os.getenv("OPENAI_MODEL", "gpt-4o")
+ap1_approved = st.session_state.ap1_status == "approved"
 finance = backend.finance.d5_handoff
 risk = backend.risk.d5_handoff
 if finance is None or risk is None:
     st.error("Backend chưa tạo đủ handoff D5. Vui lòng chạy lại pipeline hoặc kiểm tra source audit.")
     st.stop()
+
+narrative_signature = openai_narrative_signature(
+    backend,
+    team_pack,
+    openai_model,
+)
+
+if ap1_approved and openai_enabled:
+    if st.sidebar.button(
+        "Tạo lại phân tích GPT",
+        width="stretch",
+        key="regenerate_openai_narrative",
+        help="Bỏ narrative đang cache và thực hiện đúng một API call mới.",
+    ):
+        st.session_state.openai_narrative_cache = None
+
+decision_args = {
+    "ap1_status": st.session_state.ap1_status,
+    "ap2_status": st.session_state.ap2_status,
+    "ap3_status": st.session_state.ap3_status,
+    "ap4_status": st.session_state.ap4_status,
+    "final_state": st.session_state.final_state,
+    "human_approval_id": st.session_state.human_approval_id,
+}
+
+# Approval/filter reruns always rebuild deterministic state without an API call.
 decision_card = build_decision_card(
     backend,
     team_pack,
-    use_openai=use_openai,
-    ap1_status=st.session_state.ap1_status,
-    ap2_status=st.session_state.ap2_status,
-    ap3_status=st.session_state.ap3_status,
-    ap4_status=st.session_state.ap4_status,
-    final_state=st.session_state.final_state,
-    human_approval_id=st.session_state.human_approval_id,
+    use_openai=False,
+    **decision_args,
 )
+
+narrative_cache = st.session_state.openai_narrative_cache
+cache_is_current = (
+    isinstance(narrative_cache, dict)
+    and narrative_cache.get("signature") == narrative_signature
+)
+api_called_this_run = False
+
+# GPT is called once after AP-1, or after relevant inputs/model change, or when
+# the explicit regeneration button clears the cached narrative above.
+if ap1_approved and openai_enabled and not cache_is_current:
+    with st.spinner("GPT đang tổng hợp Decision Card..."):
+        live_card = build_decision_card(
+            backend,
+            team_pack,
+            use_openai=True,
+            **decision_args,
+        )
+    narrative_cache = {
+        "signature": narrative_signature,
+        **{
+            field: live_card.get(field)
+            for field in OPENAI_NARRATIVE_FIELDS
+        },
+    }
+    st.session_state.openai_narrative_cache = narrative_cache
+    cache_is_current = True
+    api_called_this_run = True
+
+if ap1_approved and cache_is_current:
+    for field in OPENAI_NARRATIVE_FIELDS:
+        decision_card[field] = narrative_cache.get(field)
+    decision_card["llm_meta"] = {
+        **(decision_card.get("llm_meta") or {}),
+        **(narrative_cache.get("llm_meta") or {}),
+        "cache_status": "MISS" if api_called_this_run else "HIT",
+        "cache_key": narrative_signature[:12],
+    }
+else:
+    decision_card["llm_meta"] = {
+        **(decision_card.get("llm_meta") or {}),
+        "cache_status": "BYPASS",
+    }
 
 llm_mode = decision_card.get("llm_meta", {}).get("mode", "fallback")
 if st.session_state.ap1_status != "approved":

@@ -44,11 +44,22 @@ def event(
 
 def build_sample_runtime_log(decision_card: dict[str, Any]) -> list[dict[str, Any]]:
     llm_meta = decision_card.get("llm_meta", {})
+    cache_status = str(llm_meta.get("cache_status", "BYPASS")).upper()
+    decision_event_type = {
+        "MISS": "tool_call",
+        "HIT": "cache_hit",
+        "BYPASS": "fallback",
+    }.get(cache_status, "fallback")
+    decision_tool_id = (
+        "OPENAI_DECISION_CARD_CACHE"
+        if cache_status == "HIT"
+        else "OPENAI_DECISION_CARD"
+    )
     return [
         event(agent_name="Finance & Data Agent", event_type="observe", tool_or_api_id="TEAM_PACK_EXCEL", request_id="REQ-FIN-001", response_status="14_sheets_loaded_8_core_6_supporting"),
         event(agent_name="Risk & Compliance Agent", event_type="reason", tool_or_api_id="RR-001", request_id="REQ-RISK-001", masked_fields=["account_id", "counterparty_id"], response_status="critical_cluster_detected"),
         event(agent_name="Founder", event_type="approval", tool_or_api_id="AP-1", request_id="APR-001", masked_fields=["account_id", "counterparty_id"], response_status="approved_temporary_hold", human_approval_id="APR-001"),
-        event(agent_name="Decision & Partner Agent", event_type="tool_call", tool_or_api_id="OPENAI_DECISION_CARD", request_id=llm_meta.get("response_id") or "REQ-LLM-FALLBACK", masked_fields=decision_card.get("masked_fields", []), response_status=llm_meta.get("mode", "unknown"), retry_count=0, safe_failure_reason=llm_meta.get("safe_failure_reason")),
+        event(agent_name="Decision & Partner Agent", event_type=decision_event_type, tool_or_api_id=decision_tool_id, request_id=llm_meta.get("response_id") or "REQ-LLM-FALLBACK", masked_fields=decision_card.get("masked_fields", []), response_status=llm_meta.get("mode", "unknown"), retry_count=0, safe_failure_reason=llm_meta.get("safe_failure_reason")),
         event(agent_name="Decision & Partner Agent", event_type="reflection", tool_or_api_id="SCHEMA_VALIDATION", request_id="REQ-DEC-001", masked_fields=decision_card.get("masked_fields", []), response_status=llm_meta.get("schema_validation", "NOT_RUN"), human_approval_id=decision_card.get("human_approval_id")),
     ]
 
