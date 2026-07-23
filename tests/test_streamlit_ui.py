@@ -181,13 +181,18 @@ def test_contract_detail_starts_collapsed_and_approval_gates_work(monkeypatch):
     assert "Risks remaining" not in markup
     assert "Missing evidence" not in markup
     assert "Nếu Founder duyệt đủ các bước trên, OPC nhận lại gì?" in markup
-    assert markup.index("Dòng tiền & Gói tín dụng") < markup.index(
+    assert markup.index(
+        "Kết quả phân tích sức khỏe tài chính tổng thể của OPC"
+    ) < markup.index("Dòng tiền & Gói tín dụng") < markup.index(
+        "Tình huống cần xử lý"
+    ) < markup.index(
         "Decision & Partner Agent · Bằng chứng bổ sung"
     ) < markup.index("Decision Card ·") < markup.index("Hàng chờ phê duyệt")
     expander_labels = [item.label for item in app.expander]
-    assert expander_labels.index(
+    assert expander_labels.index("Dữ liệu hợp đồng đã token hóa") < expander_labels.index(
         "Bằng chứng kỹ thuật · Decision & Partner"
-    ) < expander_labels.index("Dữ liệu hợp đồng đã token hóa")
+    )
+    assert expander_labels[-1] == "Bằng chứng kỹ thuật · Decision & Partner"
     assert "Dữ liệu kỹ thuật · Dòng tiền & Gói tín dụng" not in expander_labels
     assert _button(app, "approve_ap2").disabled is False
     assert _button(app, "approve_ap3").disabled is False

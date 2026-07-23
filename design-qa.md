@@ -1,56 +1,56 @@
-# Design QA
+# Design QA — Dashboard financial-result formatting
 
 ## Comparison Target
 
-- Source visual truth: `../tmp/figma-mock-20260722/01_finance_risk_analyzed.png` through `05_final_active.png`.
-- Feedback sources: `../[MIS TALENT] V3.pdf` and `../FB RAW.pdf`.
-- Implementation: `app.py`, served at `http://172.16.17.204:8501`.
-- Viewport: 1440 x 1318 CSS px at device-pixel ratio 1.
-- Final implementation captures: `tmp/qa-streamlit-final3/`.
-- Primary states compared together with their source images:
-  - `implementation-blocked-by-ap1.png` vs `02_blocked_by_ap1.png`
-  - `implementation-decision-ready.png` vs `04_decision_ready.png`
-  - `implementation-final-active.png` vs `05_final_active.png`
+- Source visual truth: screenshots attached to the user request on 2026-07-23; the chat surface did not expose a local source-image path.
+- Supporting baseline captures: `tmp/qa-streamlit-final3/implementation-decision-ready.png` and `tmp/qa-streamlit-final3/implementation-final-active.png`.
+- Implementation: `app.py`, served locally on port 8501.
+- Intended desktop viewport: 1440 px wide, matching the supplied screenshots.
+- State: CON-004 contract detail after AP-1 approval.
 
-## Browser Evidence
+## Requested Visual Changes
 
-- Chromium interaction path completed: open contract detail, approve AP-1, AP-2, AP-3 and AP-4, call Bank API mock, approve AP-5, reach `ACTIVE`.
-- Sidebar verified visible at 1440 px; initial state is expanded and the expand/collapse controls remain available.
-- Sidebar collapse/reopen regression verified on the Network URL: the reopen control remains on-canvas at `(10, 8)`, measures `28 x 28` px, and is clickable after the collapse animation completes. Evidence: `tmp/qa-streamlit-sidebar-toggle4/implementation-sidebar-collapsed.png` and `browser-qa.json`.
-- Console errors: none.
-- Page errors: none.
-- Failed network requests: none.
-- QA report: `tmp/qa-streamlit-final3/browser-qa.json`.
-- Full-page captures were also recorded for blocked, decision-ready and active states.
+- “Kết quả phân tích sức khỏe tài chính tổng thể của OPC” and “Dòng tiền & Gói tín dụng” use the same large heading rank.
+- The cash-flow section order is heading, chart/tabs, then the two yellow insight cards.
+- “Decision & Partner Agent · Bằng chứng bổ sung” uses the same neutral white/gray card treatment as the Finance and Risk agent frames.
+- “Bằng chứng kỹ thuật · Decision & Partner” renders after the two-column dashboard content as the last expander.
 
-## Fidelity Review
+## Verification Evidence
 
-- Header, status dots, scope chips, snapshot grid, five-step state rail, two-column decision/evidence composition, deterministic/GPT tags, hold treatment and action controls follow the supplied mock.
-- Finance/Risk summaries were compressed so the approval queue or Decision Card appears within the first viewport.
-- Supplied MO logo and warning SVGs are used directly; no placeholder visual assets are present.
-- Text, error, success, warning, disabled-button and primary-button contrast all meet the checked thresholds.
-- Buttons have visible enabled, disabled, hover and focus states and remained clickable throughout the automated flow.
-- Raw contract, bank-fit, OpenAI and technical evidence are collapsed by default, as requested in `FB RAW.pdf`.
-- KPI values intentionally use the live workbook (`14` sheets, `99` validated rows) instead of the static mock values (`8`, `147`).
-- The sidebar is intentionally retained and expanded following the user's explicit correction; this narrows the content column compared with the source images but preserves the same hierarchy and responsive behavior.
+- Streamlit UI state and ordering assertions: `tests/test_streamlit_ui.py`.
+- `.\.venv\Scripts\python.exe -m pytest tests/test_streamlit_ui.py -q`: 9 passed.
+- `.\.venv\Scripts\python.exe -m pytest -q`: 87 passed.
+- Python compilation: passed.
+- The local Streamlit server started successfully on port 8501.
+
+## Fidelity Surfaces
+
+- Fonts and typography: the overview title is now 22 px/1.25/850 weight, matching the existing large section-title scale; it drops to 20 px and stacks cleanly on mobile.
+- Spacing and layout rhythm: the overview heading has expanded padding and bottom spacing; the cash-flow heading precedes the tabs/chart and yellow cards; the technical expander is outside and below both dashboard columns.
+- Colors and visual tokens: the supplemental-evidence card now uses `var(--line)`, white background, neutral status badge, and the same subtle elevation as the agent containers.
+- Image quality and assets: no image assets were added or replaced.
+- Copy and content: all dashboard copy and live values are unchanged.
 
 ## Findings
 
-- No actionable P0, P1 or P2 visual defects remain in the tested desktop flow.
+- [P2] Current browser-rendered comparison is unavailable.
+  - Evidence: the in-app browser reported `Browser is not available: iab`; the default browser reported `No browser is available`.
+  - Impact: the current implementation could not be captured at the reference viewport, compared side by side with the supplied screenshots, or checked for browser console errors.
+  - Fix: reopen this project with an available browser surface and capture the AP-1-approved state at 1440 px.
 
 ## Comparison History
 
-- Iteration 1: functional redesign completed; visual QA blocked because the in-app browser backend was unavailable.
-- Iteration 2: local Chromium capture revealed overly tall agent and Decision & Partner sections; the approval queue and Decision Card were below the fold.
-- Iteration 3: agent summaries were compressed, Decision Card/AP-5/hold content was reordered, and all browser interactions passed.
-- Iteration 4: sidebar regression found by the user; default expanded state and visible expand/collapse handling were restored, then the complete browser flow was rerun.
-- Iteration 5: the hidden-toolbar parent was corrected so `stExpandSidebarButton` remains visible after collapse; automated close → reopen testing now runs in every browser QA pass.
+- Previous baseline QA passed against the earlier dashboard composition in `tmp/qa-streamlit-final3/`.
+- Current iteration updated structure, heading scale, card tokens, responsive behavior, and UI-order assertions.
+- Post-fix browser evidence is blocked because no supported browser surface is available in this session.
 
-## Verification
+## Implementation Checklist
 
-- `python -m pytest -q`: 75 passed.
-- `python -m pytest tests/test_streamlit_ui.py -q`: 3 passed.
-- `python -m py_compile app.py`: passed.
-- Browser QA: passed at 1440 x 1318, DPR 1, sidebar close/reopen passed, no console/page/network errors.
+- [x] Reorder heading, chart, and yellow cards.
+- [x] Promote the OPC analysis title to the large heading scale.
+- [x] Neutralize the supplemental-evidence card treatment.
+- [x] Move Decision & Partner technical evidence to the bottom.
+- [x] Pass the complete automated test suite.
+- [ ] Capture and visually compare the current browser-rendered AP-1-approved state.
 
-final result: passed
+final result: blocked

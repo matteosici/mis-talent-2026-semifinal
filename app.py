@@ -165,7 +165,20 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:rgba(255,255,255,.9
 .blocker-copy { color:#7e332e; font-size:12px; line-height:1.5; }
 .blocker-action { margin-top:9px; border-top:1px solid #efc4bf; padding-top:8px; color:#6f2924; font-size:12px; line-height:1.45; }
 .insight-source { display:inline-flex; align-items:center; border-radius:999px; padding:4px 7px; background:#fff; color:#6d5a7f; border:1px solid #decfed; font:750 8.5px "IBM Plex Mono",Consolas,monospace; white-space:nowrap; }
-.analysis-overview-title { display:flex; align-items:center; justify-content:space-between; gap:10px; border-left:4px solid var(--purple); background:#f9f7fc; border-radius:7px; padding:9px 11px; margin:2px 0 10px; color:var(--ink); font-size:12px; font-weight:850; }
+.analysis-overview-title { display:flex; align-items:center; justify-content:space-between; gap:14px; background:transparent; padding:0; margin:.15rem 0 1rem; color:var(--ink); font-size:22px; line-height:1.25; font-weight:850; letter-spacing:-.01em; }
+.agent-panel-marker { display:none; }
+div[data-testid="stVerticalBlockBorderWrapper"]:has(.agent-panel-marker) { background:#fff!important; }
+.zone3-sticky-marker { display:none; }
+div[data-testid="stColumn"]:has(.zone3-sticky-marker) {
+    position:sticky;
+    top:86px;
+    align-self:flex-start;
+    z-index:20;
+    max-height:calc(100vh - 102px);
+    overflow-y:auto;
+    scrollbar-gutter:stable;
+    padding-right:2px;
+}
 .agent-insight-list { margin:0; padding:0; list-style:none; color:#30384a; font-size:11.5px; line-height:1.45; }
 .agent-insight-list > li { border-bottom:1px solid #e3e6e1; padding:7px 0; }
 .agent-insight-list > li:last-child { border-bottom:0; }
@@ -183,12 +196,12 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:rgba(255,255,255,.9
 .founder-insight-label { color:#7a4f00; font:800 10px "IBM Plex Mono",Consolas,monospace; letter-spacing:.04em; text-transform:uppercase; margin-bottom:6px; }
 .founder-insight-main { color:#2f2412; font-size:15px; line-height:1.45; font-weight:750; }
 .founder-insight-next { color:#5c3d00; font-size:12px; line-height:1.45; margin-top:8px; padding-top:8px; border-top:1px solid rgba(135,85,0,.2); }
-.partner-card { border:1px solid #cfb9e5; border-left:5px solid var(--purple); background:#fbf8ff; border-radius:9px; padding:14px 16px; margin:10px 0 14px; }
+.partner-card { border:1px solid var(--line); background:#fff; border-radius:10px; padding:14px 16px; margin:10px 0 14px; box-shadow:0 1px 3px rgba(18,23,43,.035); }
 .partner-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:7px; }
 .partner-card-title { color:var(--ink); font-size:14px; font-weight:900; }
-.partner-card-state { border-radius:999px; padding:4px 8px; background:#efe5fa; color:#69399a; font:800 8.5px "IBM Plex Mono",Consolas,monospace; white-space:nowrap; }
+.partner-card-state { border:1px solid #dbe0d8; border-radius:999px; padding:4px 8px; background:#f8faf7; color:#596273; font:800 8.5px "IBM Plex Mono",Consolas,monospace; white-space:nowrap; }
 .partner-card-body { color:#41495b; font-size:12.5px; line-height:1.5; }
-.partner-card-next { color:#4f2b78; font-size:11.5px; line-height:1.45; font-weight:750; margin-top:8px; }
+.partner-card-next { color:var(--ink); font-size:11.5px; line-height:1.45; font-weight:750; margin-top:8px; }
 .gate-kpi-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:6px 0 13px; }
 .gate-kpi-card { border:1px solid #dbe0d8; border-radius:8px; padding:10px 11px; background:#fff; min-width:0; }
 .gate-kpi-card.danger { border-color:#efc4bf; background:#fff5f2; }
@@ -284,8 +297,8 @@ div[data-testid="stMetric"] { background:#fff; border:1px solid var(--line); bor
 .stTabs [aria-selected="true"] { color:var(--ink)!important; }
 div[data-testid="stExpander"] { background:#fff; border-color:var(--line); border-radius:8px; }
 .stMarkdown h5 { font-size:14px; margin:.15rem 0 .45rem; }
-@media (max-width:1100px) { .snapshot-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .console-header{position:relative;} .decision-body{grid-template-columns:1fr;} .upside{grid-column:auto;} .agent-kpi-label{min-height:0;} }
-@media (max-width:760px) { .block-container{padding-left:.75rem;padding-right:.75rem;} .console-header{align-items:flex-start;flex-direction:column;} .header-badges{justify-content:flex-start;} .snapshot-grid{grid-template-columns:1fr;} .stepper{grid-template-columns:1fr;} .contract-heading{flex-direction:column;} .approval-progress-grid,.founder-insight-grid,.gate-kpi-grid{grid-template-columns:1fr;} .risk-evidence-row{grid-template-columns:1fr;} .risk-evidence-row.header{display:none;} .final-banner-title{font-size:20px;} }
+@media (max-width:1100px) { .snapshot-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .console-header{position:relative;} .decision-body{grid-template-columns:1fr;} .upside{grid-column:auto;} .agent-kpi-label{min-height:0;} div[data-testid="stColumn"]:has(.zone3-sticky-marker){top:16px;max-height:calc(100vh - 32px);} }
+@media (max-width:760px) { .block-container{padding-left:.75rem;padding-right:.75rem;} .console-header{align-items:flex-start;flex-direction:column;} .header-badges{justify-content:flex-start;} .snapshot-grid{grid-template-columns:1fr;} .stepper{grid-template-columns:1fr;} .contract-heading,.analysis-overview-title{align-items:flex-start;flex-direction:column;} .analysis-overview-title{font-size:20px;} .approval-progress-grid,.founder-insight-grid,.gate-kpi-grid{grid-template-columns:1fr;} .risk-evidence-row{grid-template-columns:1fr;} .risk-evidence-row.header{display:none;} .final-banner-title{font-size:20px;} div[data-testid="stColumn"]:has(.zone3-sticky-marker){position:static;max-height:none;overflow:visible;padding-right:0;} }
 </style>
 """,
     unsafe_allow_html=True,
@@ -913,7 +926,6 @@ def render_cashflow_credit_insights(card: dict[str, Any], backend_output: Any) -
     )
     worst_month = _display_month(getattr(worst, "month", None))
     recovery_month = _display_month(upside.get("recovery_month"))
-    st.markdown("#### Dòng tiền & Gói tín dụng")
     st.markdown(
         f'''<div class="founder-insight-grid">
             <article class="founder-insight-card">
@@ -2394,6 +2406,10 @@ elif page == "Chi tiết hợp đồng":
             with agent_left:
                 if agent_visible("Finance & Data"):
                     with st.container(border=True):
+                        st.markdown(
+                            '<span class="agent-panel-marker"></span>',
+                            unsafe_allow_html=True,
+                        )
                         if analysis_done:
                             st.markdown("##### Finance & Data Agent")
                             contract_value = margin.get("contract_value_vnd", contract_row.get("contract_value"))
@@ -2471,6 +2487,10 @@ elif page == "Chi tiết hợp đồng":
             with agent_right:
                 if agent_visible("Risk & Compliance"):
                     with st.container(border=True):
+                        st.markdown(
+                            '<span class="agent-panel-marker"></span>',
+                            unsafe_allow_html=True,
+                        )
                         if analysis_done:
                             st.markdown("##### Risk & Compliance Agent")
                             if detail_contract_id == "CON-004":
@@ -2519,11 +2539,11 @@ elif page == "Chi tiết hợp đồng":
 
             if detail_contract_id == "CON-004":
                 if st.session_state.ap1_status == "approved":
+                    st.markdown("#### Dòng tiền & Gói tín dụng")
                     render_cashflow_credit_data(detail_contract_id, decision_card)
                     render_cashflow_credit_insights(decision_card, backend)
                 if agent_visible("Decision & Partner"):
                     render_decision_partner_card(decision_card, backend)
-                    render_decision_partner_technical(decision_card)
                 if not blocked:
                     render_decision_card(decision_card)
             elif agent_visible("Decision & Partner"):
@@ -2613,6 +2633,10 @@ elif page == "Chi tiết hợp đồng":
 
     with evidence_col:
         with st.container(border=True):
+            st.markdown(
+                '<span class="zone3-sticky-marker"></span>',
+                unsafe_allow_html=True,
+            )
             zone_heading("ZONE 3", "System Evidence")
             render_runtime_evidence(decision_card)
             st.markdown(
@@ -2632,6 +2656,12 @@ elif page == "Chi tiết hợp đồng":
                     },
                     expanded=False,
                 )
+    if (
+        detail_contract_id == "CON-004"
+        and analysis_done
+        and agent_visible("Decision & Partner")
+    ):
+        render_decision_partner_technical(decision_card)
 else:
     render_snapshot_panel(snapshot_cards_for_view(detail_contract_id), "Data Health & Audit Evidence")
     safe_backend_evidence = {
