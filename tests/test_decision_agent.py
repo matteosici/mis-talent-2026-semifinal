@@ -295,6 +295,24 @@ def test_build_decision_card_syncs_approval_status_and_final_state(
     assert blocks["AP-2"] == ["AP-4", "AP-5"]
     assert blocks["AP-3"] == ["AP-4", "AP-5"]
     assert card["recommendation"] == "RECOMMEND"
+    assert "AP-1 đến AP-5 đã hoàn tất" in card["rationale"]
+    assert "xử lý AP-1 trước" not in card["rationale"]
+
+
+def test_decision_card_rationale_matches_current_approval_stage(
+    backend,
+    team_pack,
+):
+    card = build_decision_card(
+        backend,
+        team_pack,
+        use_openai=False,
+        ap1_status="approved",
+    )
+
+    assert "Cụm giao dịch rủi ro đã được Founder tạm giữ" in card["rationale"]
+    assert "AP-2, AP-3, AP-4" in card["rationale"]
+    assert "xử lý AP-1 trước" not in card["rationale"]
 
 
 def test_build_decision_card_rejected_overrides_pending_evidence(

@@ -479,6 +479,64 @@ def _validate_narrative(
     return isinstance(rationale, str) and bool(rationale.strip())
 
 
+def _stage_aware_rationale(
+    original: str,
+    approval_required: list[dict[str, Any]],
+    *,
+    package_total_vnd: int | None,
+    gross_profit_vnd: int | None,
+    final_state: str,
+) -> str:
+    statuses = {
+        str(item.get("id")): str(item.get("status", "pending"))
+        for item in approval_required
+    }
+    rejected = next(
+        (approval_id for approval_id, status in statuses.items() if status == "rejected"),
+        None,
+    )
+    if rejected:
+        return (
+            f"{rejected} đã bị Founder từ chối nên Decision Agent không tiếp tục gói khuyến nghị. "
+            "Luồng an toàn là giữ hồ sơ ở trạng thái không khuyến nghị/không submit, sau đó Founder có thể xem lại lựa chọn nếu muốn mở lại bước này."
+        )
+    if final_state == "ACTIVE":
+        return (
+            "AP-1 đến AP-5 đã hoàn tất; CON-004 được chuyển sang Active sau khi Founder chốt quyết định cuối. "
+            "Decision Agent chỉ ghi nhận trạng thái đã duyệt và giữ bằng chứng để đối chiếu runtime log."
+        )
+    if final_state == "REJECTED":
+        return (
+            "Founder đã chốt AP-5 theo hướng từ chối CON-004. Decision Agent khóa quyết định cuối và không chuyển hồ sơ sang Active."
+        )
+    if final_state == "NEED_MORE_INFORMATION":
+        return (
+            "Founder đã chốt AP-5 theo hướng yêu cầu bổ sung thông tin. Decision Agent giữ hồ sơ ngoài Active cho đến khi bằng chứng mới được nạp lại."
+        )
+    if final_state == "RENEGOTIATE":
+        return (
+            "Founder đã chốt AP-5 theo hướng đàm phán lại. Decision Agent giữ CON-004 trong trạng thái renegotiate thay vì tự động phê duyệt."
+        )
+    if statuses.get("AP-1") == "approved":
+        pending = [
+            approval_id
+            for approval_id in ("AP-2", "AP-3", "AP-4")
+            if statuses.get(approval_id) != "approved"
+        ]
+        if pending:
+            return (
+                "Cụm giao dịch rủi ro đã được Founder tạm giữ, nên Decision Card được mở cho phần gói tín dụng. "
+                f"Việc cần làm tiếp là hoàn tất {', '.join(pending)} trước khi chốt AP-5; "
+                f"gói đề xuất hiện có tổng nhu cầu {_money(package_total_vnd)} và upside ước tính {_money(gross_profit_vnd)}. "
+                "Nếu còn thiếu bằng chứng hoặc approval nào chưa xong, không chuyển hồ sơ sang Active."
+            )
+        return (
+            "AP-1 đến AP-4 đã hoàn tất; Bank API sandbox chỉ phục vụ pre-check và không gửi hồ sơ tới ngân hàng thật. "
+            f"Founder có thể chốt AP-5 dựa trên gói đề xuất {_money(package_total_vnd)} và upside ước tính {_money(gross_profit_vnd)}."
+        )
+    return original
+
+
 def _strip_json_fence(value: str) -> str:
     """Remove an optional Markdown JSON fence without altering plain JSON."""
 
@@ -681,6 +739,13 @@ def build_decision_card(
         evidence_missing_any,
         any(item["status"] == "rejected" for item in approval_required),
     )
+    rationale = _stage_aware_rationale(
+        llm.rationale,
+        approval_required,
+        package_total_vnd=finance.decision_package_total_ask_vnd,
+        gross_profit_vnd=None if con004 is None else con004.gross_profit_vnd,
+        final_state=final_state,
+    )
     return {
         "trace_id": TRACE_ID,
         "decision_version": DECISION_VERSION,
@@ -700,8 +765,8 @@ def build_decision_card(
         "conflicts_detected": llm.conflicts_detected,
         "critical_flags": [] if ap1_status == "approved" else [f"{transaction_hold_subject} chưa được xác nhận tạm giữ"],
         "conditions": llm.conditions,
-        "rationale": llm.rationale,
-        "llm_meta": llm.llm_meta,
+        "rationale": rationale,
+        "llm_meta": {**llm.llm_meta, "rationale_stage_guard": "approval_status_applied"},
     }
 
 

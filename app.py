@@ -1300,6 +1300,10 @@ def render_decision_card(card: dict[str, Any]) -> None:
         f'''<div class="decision-note gpt"><strong>{esc(item.get("description"))}</strong><br><span style="color:#6d5a7f">Cách xử lý: {esc(item.get("resolution_note"))}</span></div>'''
         for item in card.get("conflicts_detected", [])
     ) or '<div class="decision-note gpt">Không có mâu thuẫn nghiêm trọng sau khi AP-1 được xử lý.</div>'
+    llm_meta = card.get("llm_meta", {}) or {}
+    llm_model = str(llm_meta.get("model") or openai_model or "gpt-4o").upper()
+    llm_mode = str(llm_meta.get("mode") or "fallback").upper()
+    gpt_source_tag = f"{llm_model} · {'LIVE' if llm_mode == 'LIVE' else 'FALLBACK'}"
 
     approval_summary = []
     for item in card.get("approval_required", []):
@@ -1328,8 +1332,8 @@ def render_decision_card(card: dict[str, Any]) -> None:
                     <div class="decision-section"><div class="decision-section-title"><span class="source-tag tag-det">DỮ LIỆU ĐÃ KIỂM CHỨNG</span>Rủi ro và bằng chứng cần xử lý</div>{risk_evidence_table}</div>
                 </div>
                 <div>
-                    <div class="decision-section"><div class="decision-section-title"><span class="source-tag tag-gpt">TÓM TẮT NGÔN NGỮ</span>Mâu thuẫn cần lưu ý</div>{conflict_rows}<div class="decision-guidance">↓ Xem Lý do đề xuất để hiểu vì sao hệ thống vẫn đưa ra khuyến nghị có điều kiện.</div></div>
-                    <div class="decision-section"><div class="decision-section-title"><span class="source-tag tag-gpt">TÓM TẮT NGÔN NGỮ</span>Lý do đề xuất</div><div class="decision-note gpt">{esc(card.get("rationale"))}</div></div>
+                    <div class="decision-section"><div class="decision-section-title"><span class="source-tag tag-gpt">{esc(gpt_source_tag)}</span>Mâu thuẫn cần lưu ý</div>{conflict_rows}<div class="decision-guidance">↓ Xem Lý do đề xuất để hiểu vì sao hệ thống vẫn đưa ra khuyến nghị có điều kiện.</div></div>
+                    <div class="decision-section"><div class="decision-section-title"><span class="source-tag tag-gpt">{esc(gpt_source_tag)}</span>Lý do đề xuất</div><div class="decision-note gpt">{esc(card.get("rationale"))}</div></div>
                 </div>
                 <div class="upside"><div class="upside-title">Nếu Founder duyệt đủ các bước trên, OPC nhận lại gì?</div>CON-004 có thể mang lại {esc(money(upside.get("gross_profit_vnd")))} lợi nhuận gộp và giúp dòng tiền phục hồi từ tháng {esc(_display_month(upside.get("recovery_month")))} với số dư cuối kỳ dự kiến {esc(money(upside.get("recovery_closing_cash_vnd")))}. Điều kiện là AP-1 đến AP-4 phải được xử lý đúng thứ tự trước khi Founder chốt AP-5.</div>
                 <div class="decision-section" style="grid-column:1/-1;margin-bottom:0"><div class="decision-section-title">Trạng thái phê duyệt</div><div class="approval-summary">{''.join(approval_summary)}</div><div class="decision-guidance">Đọc xong phần trên, kéo xuống Hàng chờ phê duyệt để xử lý bước tiếp theo.</div></div>
