@@ -103,11 +103,14 @@ def resolve_recommendation(
     final_state: str,
     has_pending_approvals: bool,
     evidence_missing: bool,
+    has_rejected_approvals: bool = False,
 ) -> str:
     """Resolve the recommendation while giving an explicit human decision priority."""
 
     if final_state in _FINAL_STATE_REC:
         return _FINAL_STATE_REC[final_state]
+    if has_rejected_approvals:
+        return "NOT_RECOMMEND"
     if evidence_missing:
         return "NOT_RECOMMEND"
     if has_pending_approvals:
@@ -674,8 +677,9 @@ def build_decision_card(
     )
     recommendation = resolve_recommendation(
         final_state,
-        any(item["status"] != "approved" for item in approval_required),
+        any(item["status"] == "pending" for item in approval_required),
         evidence_missing_any,
+        any(item["status"] == "rejected" for item in approval_required),
     )
     return {
         "trace_id": TRACE_ID,

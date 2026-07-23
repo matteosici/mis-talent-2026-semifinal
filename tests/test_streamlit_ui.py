@@ -161,13 +161,14 @@ def test_contract_detail_starts_collapsed_and_approval_gates_work(monkeypatch):
     assert "Decision Card" not in markup
     assert "Dòng tiền &amp; Gói tín dụng" not in markup
     assert "Số tiền thiếu cho vận hành" in markup
-    assert "Giá trị giao dịch bị chặn" in markup
+    assert "Điểm rủi ro giao dịch" in markup
+    assert "Giá trị giao dịch bị chặn" not in markup
     assert "TXN-006/007 cluster — exposure" not in markup
 
     _button(app, "approve_ap1").click().run()
     assert app.session_state["ap1_status"] == "approved"
     assert app.session_state["final_state"] == "CREDIT_PACKAGE_PROPOSED"
-    assert "1/3" in "\n".join(item.value for item in app.markdown)
+    assert "1/5" in "\n".join(item.value for item in app.markdown)
     markup = "\n".join(item.value for item in app.markdown)
     assert "Dòng tiền & Gói tín dụng" in markup
     assert "Tình huống cần xử lý" in markup
@@ -184,9 +185,10 @@ def test_contract_detail_starts_collapsed_and_approval_gates_work(monkeypatch):
         "Decision & Partner Agent · Bằng chứng bổ sung"
     ) < markup.index("Decision Card ·") < markup.index("Hàng chờ phê duyệt")
     expander_labels = [item.label for item in app.expander]
-    assert expander_labels.index("Dữ liệu hợp đồng đã token hóa") < expander_labels.index(
+    assert expander_labels.index(
         "Bằng chứng kỹ thuật · Decision & Partner"
-    ) < expander_labels.index("Dữ liệu kỹ thuật · Dòng tiền & Gói tín dụng")
+    ) < expander_labels.index("Dữ liệu hợp đồng đã token hóa")
+    assert "Dữ liệu kỹ thuật · Dòng tiền & Gói tín dụng" not in expander_labels
     assert _button(app, "approve_ap2").disabled is False
     assert _button(app, "approve_ap3").disabled is False
     assert _button(app, "approve_ap4").disabled is True
@@ -196,7 +198,7 @@ def test_contract_detail_starts_collapsed_and_approval_gates_work(monkeypatch):
     assert "Đã duyệt · AP-2" in markup
     assert "Chưa duyệt · AP-3" in markup
     _button(app, "approve_ap3").click().run()
-    assert "3/3" in "\n".join(item.value for item in app.markdown)
+    assert "3/5" in "\n".join(item.value for item in app.markdown)
     assert _button(app, "approve_ap4").disabled is False
     _button(app, "approve_ap4").click().run()
     assert app.session_state["ap4_status"] == "approved"
@@ -220,6 +222,37 @@ def test_contract_detail_starts_collapsed_and_approval_gates_work(monkeypatch):
     assert "Trạng thái CON-004" in markup
     assert "ACTIVE" in markup
     assert not any(item.key == "final_approve" for item in app.button)
+
+
+def test_approval_reject_flow_is_reversible(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+    app = _app()
+    app.radio[0].set_value("Chi tiết hợp đồng").run()
+    _button(app, "analyze_con004").click().run()
+    _button(app, "approve_ap1").click().run()
+
+    _button(app, "reject_ap2").click().run()
+    app.selectbox(key="ap_2_reject_reason_select").set_value(
+        "Chưa cần thiết ở giai đoạn này"
+    ).run()
+    _button(app, "confirm_reject_ap2").click().run()
+
+    assert app.session_state["ap2_status"] == "rejected"
+    assert app.session_state["ap2_reject_reason"] == "Chưa cần thiết ở giai đoạn này"
+    assert app.session_state["human_approval_id"] == "APR-002-REJECT"
+    markup = "\n".join(item.value for item in app.markdown)
+    assert "Đã từ chối · AP-2" in markup
+    assert "Thiếu 950M vốn lưu động" in markup
+    assert "AP-2 rejected · APR-002-REJECT" in markup
+    assert "NOT_RECOMMEND" in markup
+    assert _button(app, "approve_ap4").disabled is True
+    assert not any(item.key == "final_approve" for item in app.button)
+
+    _button(app, "review_ap2").click().run()
+    assert app.session_state["ap2_status"] == "pending"
+    assert app.session_state["ap2_reject_reason"] == ""
+    markup = "\n".join(item.value for item in app.markdown)
+    assert "Chưa duyệt · AP-2" in markup
 
 
 @pytest.mark.parametrize(

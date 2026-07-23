@@ -311,6 +311,23 @@ def test_build_decision_card_rejected_overrides_pending_evidence(
     assert card["recommendation"] == "NOT_RECOMMEND"
 
 
+def test_build_decision_card_rejected_approval_is_not_conditional(
+    backend,
+    team_pack,
+):
+    card = build_decision_card(
+        backend,
+        team_pack,
+        use_openai=False,
+        ap1_status="approved",
+        ap2_status="rejected",
+    )
+    statuses = {item["id"]: item["status"] for item in card["approval_required"]}
+
+    assert statuses["AP-2"] == "rejected"
+    assert card["recommendation"] == "NOT_RECOMMEND"
+
+
 def test_collateral_is_marked_as_prototype_fallback(backend, team_pack):
     card = build_decision_card(backend, team_pack, use_openai=False)
 

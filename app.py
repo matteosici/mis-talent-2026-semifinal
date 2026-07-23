@@ -149,7 +149,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:rgba(255,255,255,.9
 .approval-progress-count { color:#596273; font:700 9.5px "IBM Plex Mono",Consolas,monospace; white-space:nowrap; }
 .approval-progress-track { height:5px; border-radius:999px; background:#e2e5df; overflow:hidden; margin-bottom:9px; }
 .approval-progress-fill { height:100%; border-radius:inherit; background:var(--green); transition:width .25s ease; }
-.approval-progress-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+.approval-progress-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; }
 .approval-stage { border:1px solid #dde1da; border-radius:7px; padding:7px 8px; background:#fff; min-width:0; }
 .approval-stage.complete { border-color:#c2decf; background:var(--green-soft); }
 .approval-stage.waiting { border-color:#dfc589; background:var(--amber-soft); }
@@ -172,7 +172,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:rgba(255,255,255,.9
 .agent-insight-list strong { color:var(--ink); }
 .credit-priority-list { margin:6px 0 0 18px; padding:0; color:#596273; font-size:10px; }
 .credit-priority-list li { padding:2px 0; }
-.agent-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:7px; width:100%; max-width:100%; min-width:0; margin:10px 0 0; padding:0 0 8px; }
+.agent-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:7px; width:100%; max-width:100%; min-width:0; margin:0 0 10px; padding:0 0 8px; }
 .agent-kpi-card { border:1px solid #dbe0d8; border-radius:7px; padding:8px; width:100%; max-width:100%; min-width:0; overflow:hidden; background:#f8faf7; }
 .agent-kpi-card.danger { border-color:#efc4bf; background:#fff5f2; }
 .agent-kpi-label { color:#697386; font-size:8.5px; line-height:1.25; min-height:22px; min-width:0; overflow-wrap:anywhere; }
@@ -189,6 +189,16 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:rgba(255,255,255,.9
 .partner-card-state { border-radius:999px; padding:4px 8px; background:#efe5fa; color:#69399a; font:800 8.5px "IBM Plex Mono",Consolas,monospace; white-space:nowrap; }
 .partner-card-body { color:#41495b; font-size:12.5px; line-height:1.5; }
 .partner-card-next { color:#4f2b78; font-size:11.5px; line-height:1.45; font-weight:750; margin-top:8px; }
+.gate-kpi-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:6px 0 13px; }
+.gate-kpi-card { border:1px solid #dbe0d8; border-radius:8px; padding:10px 11px; background:#fff; min-width:0; }
+.gate-kpi-card.danger { border-color:#efc4bf; background:#fff5f2; }
+.gate-kpi-label { color:#697386; font-size:9.5px; font-weight:800; line-height:1.25; }
+.gate-kpi-value { color:var(--ink); font-size:14px; font-weight:900; line-height:1.22; margin-top:5px; overflow-wrap:anywhere; }
+.gate-kpi-note { color:#71798a; font:8.5px "IBM Plex Mono",Consolas,monospace; line-height:1.35; margin-top:5px; }
+.sandbox-box { border:1px solid #d7dbe3; border-radius:9px; padding:12px 13px; background:#fbfcfa; margin:12px 0 14px; }
+.sandbox-box.locked { background:#f8fafc; color:#596273; }
+.sandbox-title { color:var(--ink); font-size:13px; font-weight:900; margin-bottom:5px; }
+.sandbox-copy { color:#596273; font-size:11.5px; line-height:1.45; }
 .info-card { border:1px solid #d7dbe3; border-left:4px solid var(--purple); background:#fbf9ff; border-radius:8px; padding:12px 14px; margin:9px 0; color:#2c3447; font-size:12.5px; }
 .info-card strong { color:var(--ink); }
 .next-step { border:1px solid #c7d9ce; background:#edf7f1; border-radius:8px; padding:13px 14px; margin:10px 0 13px; color:#245b45; font-size:12.5px; }
@@ -234,6 +244,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:rgba(255,255,255,.9
 .approval-queue-intro { color:#687184; font-size:11px; margin:-3px 0 10px; }
 .approval-queue-row { border:1px solid #dfe2dd; border-radius:8px; padding:9px 11px; background:#fbfcfa; margin-bottom:7px; }
 .approval-queue-row.done { border-color:#c2decf; background:#f0f8f4; }
+.approval-queue-row.rejected { border-color:#eab3ac; background:#fdf1ef; }
 .approval-queue-title { color:var(--ink); font-size:11.5px; font-weight:850; }
 .approval-queue-copy { color:#667085; font-size:10.5px; line-height:1.4; margin-top:3px; }
 .final-banner { border-radius:10px; padding:18px 20px; margin:10px 0 16px; box-shadow:0 8px 22px rgba(18,23,43,.18); }
@@ -274,7 +285,7 @@ div[data-testid="stMetric"] { background:#fff; border:1px solid var(--line); bor
 div[data-testid="stExpander"] { background:#fff; border-color:var(--line); border-radius:8px; }
 .stMarkdown h5 { font-size:14px; margin:.15rem 0 .45rem; }
 @media (max-width:1100px) { .snapshot-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .console-header{position:relative;} .decision-body{grid-template-columns:1fr;} .upside{grid-column:auto;} .agent-kpi-label{min-height:0;} }
-@media (max-width:760px) { .block-container{padding-left:.75rem;padding-right:.75rem;} .console-header{align-items:flex-start;flex-direction:column;} .header-badges{justify-content:flex-start;} .snapshot-grid{grid-template-columns:1fr;} .stepper{grid-template-columns:1fr;} .contract-heading{flex-direction:column;} .approval-progress-grid,.founder-insight-grid{grid-template-columns:1fr;} .risk-evidence-row{grid-template-columns:1fr;} .risk-evidence-row.header{display:none;} .final-banner-title{font-size:20px;} }
+@media (max-width:760px) { .block-container{padding-left:.75rem;padding-right:.75rem;} .console-header{align-items:flex-start;flex-direction:column;} .header-badges{justify-content:flex-start;} .snapshot-grid{grid-template-columns:1fr;} .stepper{grid-template-columns:1fr;} .contract-heading{flex-direction:column;} .approval-progress-grid,.founder-insight-grid,.gate-kpi-grid{grid-template-columns:1fr;} .risk-evidence-row{grid-template-columns:1fr;} .risk-evidence-row.header{display:none;} .final-banner-title{font-size:20px;} }
 </style>
 """,
     unsafe_allow_html=True,
@@ -589,19 +600,33 @@ def con004_analysis_done() -> bool:
 
 
 def render_founder_approval_progress() -> None:
-    """Show AP-1..AP-3 progress directly below the CON-004 identity."""
+    """Show AP-1..AP-5 progress directly below the CON-004 identity."""
     analysis_done = con004_analysis_done()
     ap1_done = st.session_state.ap1_status == "approved"
+    ap2_done = st.session_state.ap2_status == "approved"
+    ap3_done = st.session_state.ap3_status == "approved"
+    ap4_done = st.session_state.ap4_status == "approved"
+    ap5_done = st.session_state.final_state in FINAL_STATES
     statuses = [
         ("AP-1", ap1_done, analysis_done, "Tạm giữ giao dịch"),
-        ("AP-2", st.session_state.ap2_status == "approved", ap1_done, "Vốn lưu động"),
-        ("AP-3", st.session_state.ap3_status == "approved", ap1_done, "Bảo lãnh thực hiện"),
+        ("AP-2", ap2_done, ap1_done, "Vốn lưu động"),
+        ("AP-3", ap3_done, ap1_done, "Bảo lãnh thực hiện"),
+        ("AP-4", ap4_done, ap2_done and ap3_done, "Mở sandbox"),
+        ("AP-5", ap5_done, ap4_done, "Quyết định cuối"),
     ]
     approved_count = sum(done for _, done, _, _ in statuses)
     progress = approved_count / len(statuses) * 100
     stages = []
     for approval_id, done, unlocked, description in statuses:
-        if done:
+        status_value = (
+            st.session_state.final_state
+            if approval_id == "AP-5"
+            else st.session_state.get(APPROVAL_ID_TO_STATUS_KEY[approval_id], "pending")
+        )
+        if status_value == "rejected":
+            klass = "waiting"
+            status_text = "Founder đã từ chối"
+        elif done:
             klass = "complete"
             status_text = "✓ Founder đã duyệt"
         elif unlocked:
@@ -619,8 +644,8 @@ def render_founder_approval_progress() -> None:
     st.markdown(
         f'''<section class="approval-progress">
             <div class="approval-progress-head">
-                <div class="approval-progress-title">Tiến độ Founder phê duyệt · AP-1 → AP-3</div>
-                <div class="approval-progress-count">{approved_count}/3 HOÀN TẤT</div>
+                <div class="approval-progress-title">Tiến độ Founder phê duyệt · AP-1 → AP-5</div>
+                <div class="approval-progress-count">{approved_count}/{len(statuses)} HOÀN TẤT</div>
             </div>
             <div class="approval-progress-track"><div class="approval-progress-fill" style="width:{progress:.0f}%"></div></div>
             <div class="approval-progress-grid">{''.join(stages)}</div>
@@ -674,6 +699,18 @@ def render_runtime_evidence(card: dict[str, Any]) -> None:
                 (now, "MASKING", "restricted fields tokenized"),
             ]
         )
+    for approval_id, status_key in APPROVAL_ID_TO_STATUS_KEY.items():
+        if st.session_state.get(status_key) == "rejected":
+            reason = st.session_state.get(f"{approval_id.lower().replace('-', '')}_reject_reason", "")
+            request_id = f"{APPROVAL_ID_TO_REQUEST_ID[approval_id]}-REJECT"
+            events.append(
+                (
+                    now,
+                    "FOUNDER",
+                    f"{approval_id} rejected · {request_id}"
+                    + (f" · {reason}" if reason else ""),
+                )
+            )
     if st.session_state.ap4_status == "approved":
         events.append((now, "BANK_API", "AP-4 released sandbox precheck"))
     if st.session_state.ap1_status == "approved":
@@ -757,6 +794,55 @@ def approval_status_class(status: str) -> str:
     if status in {"rejected", "need_more_information", "renegotiate"}:
         return "rejected"
     return "pending"
+
+
+APPROVAL_REJECT_REASONS = {
+    "AP-1": [
+        "Chưa đủ căn cứ để giữ giao dịch",
+        "Cần xác minh thêm trước khi quyết định",
+        "Chấp nhận rủi ro, không cần giữ",
+        "Khác",
+    ],
+    "AP-2": [
+        "Điều kiện tín dụng (lãi suất/kỳ hạn/phí) chưa phù hợp",
+        "Muốn cân nhắc phương án khác trước khi vay/bảo lãnh",
+        "Chưa cần thiết ở giai đoạn này",
+        "Khác",
+    ],
+    "AP-3": [
+        "Điều kiện tín dụng (lãi suất/kỳ hạn/phí) chưa phù hợp",
+        "Muốn cân nhắc phương án khác trước khi vay/bảo lãnh",
+        "Chưa cần thiết ở giai đoạn này",
+        "Khác",
+    ],
+    "AP-4": [
+        "Chưa sẵn sàng chia sẻ dữ liệu ra đối tác ngoài",
+        "Muốn rà lại dữ liệu đã masking trước khi gửi",
+        "Muốn đổi kênh nộp (không qua API)",
+        "Khác",
+    ],
+}
+
+APPROVAL_REJECT_CONSEQUENCES = {
+    "AP-1": "Cụm giao dịch nghi ngờ (178M) vẫn tiếp tục di chuyển. Toàn bộ gói tín dụng (AP-2 → AP-5) tạm khóa.",
+    "AP-2": "Thiếu 950M vốn lưu động trong gói đề xuất. AP-4 và AP-5 tạm khóa.",
+    "AP-3": "Thiếu 420M bảo lãnh thực hiện trong gói đề xuất. AP-4 và AP-5 tạm khóa.",
+    "AP-4": "Không có hồ sơ nào được gửi ra bank API. AP-5 tạm khóa.",
+}
+
+APPROVAL_ID_TO_STATUS_KEY = {
+    "AP-1": "ap1_status",
+    "AP-2": "ap2_status",
+    "AP-3": "ap3_status",
+    "AP-4": "ap4_status",
+}
+
+APPROVAL_ID_TO_REQUEST_ID = {
+    "AP-1": "APR-001",
+    "AP-2": "APR-002",
+    "AP-3": "APR-003",
+    "AP-4": "APR-004",
+}
 
 
 def severity_class(severity: str) -> str:
@@ -847,7 +933,19 @@ def render_cashflow_credit_insights(card: dict[str, Any], backend_output: Any) -
 
 def render_decision_partner_card(card: dict[str, Any], backend_output: Any) -> None:
     del backend_output  # Facts are already consolidated in the deterministic Decision Card.
-    if st.session_state.ap1_status != "approved":
+    rejected_approval = next(
+        (
+            approval_id
+            for approval_id, status_key in APPROVAL_ID_TO_STATUS_KEY.items()
+            if st.session_state.get(status_key) == "rejected"
+        ),
+        None,
+    )
+    if rejected_approval:
+        state = "ĐÃ DỪNG DO KHÔNG DUYỆT"
+        body = APPROVAL_REJECT_CONSEQUENCES[rejected_approval]
+        next_action = "Bước tiếp theo: Founder có thể bấm Xem lại lựa chọn ở Hàng chờ phê duyệt nếu muốn mở lại bước này."
+    elif st.session_state.ap1_status != "approved":
         state = "ĐANG CHỜ AP-1"
         body = (
             "Decision & Partner đang chờ phản hồi từ Founder cho Điểm duyệt AP-1. "
@@ -963,6 +1061,199 @@ def render_cashflow_credit_data(contract_id: str, card: dict[str, Any]) -> None:
             )
 
 
+def render_gate_reason_kpis(card: dict[str, Any]) -> None:
+    findings = list(getattr(backend.risk, "transaction_findings", []))
+    risk_scores = [float(getattr(item, "risk_score", 0) or 0) for item in findings]
+    risk_score_text = " · ".join(f"{score:g}" for score in risk_scores) if risk_scores else "n/a"
+    risk_threshold = getattr(
+        getattr(backend.risk, "rule_snapshot", None),
+        "transaction_risk_threshold",
+        85,
+    )
+    governance_threshold = getattr(
+        getattr(backend.risk, "rule_snapshot", None),
+        "governance_amount_threshold_vnd",
+        300_000_000,
+    )
+    amount_by_credit = {
+        str(item.get("credit_id")): item.get("amount")
+        for item in card.get("financial_ask", {}).get("breakdown", [])
+    }
+    governance_parts = [
+        f"{credit_id} {money(amount_by_credit[credit_id])}"
+        for credit_id in ("CR-001", "CR-002")
+        if credit_id in amount_by_credit
+    ]
+    api002 = next(
+        (
+            row
+            for row in team_pack.get("12_API_CATALOG", [])
+            if str(row.get("api_id")) == "API-002"
+        ),
+        {},
+    )
+    api_provider = api002.get("bank_name") or api002.get("provider") or api002.get("partner_name") or "VietinBank"
+    st.markdown(
+        f'''<div class="gate-kpi-grid">
+            <div class="gate-kpi-card danger">
+                <div class="gate-kpi-label">Điểm rủi ro giao dịch</div>
+                <div class="gate-kpi-value">{esc(risk_score_text)} / 100</div>
+                <div class="gate-kpi-note">Ngưỡng kích hoạt AP-1: ≥{esc(risk_threshold)} · RR-001</div>
+            </div>
+            <div class="gate-kpi-card danger">
+                <div class="gate-kpi-label">Ngưỡng phê duyệt tài chính</div>
+                <div class="gate-kpi-value">{esc(' & '.join(governance_parts) or 'n/a')} &gt; {esc(money(governance_threshold))}</div>
+                <div class="gate-kpi-note">Cần Founder duyệt · RR-005 · AP-2, AP-3</div>
+            </div>
+            <div class="gate-kpi-card">
+                <div class="gate-kpi-label">Gửi hồ sơ ra ngoài</div>
+                <div class="gate-kpi-value">API-002 · {esc(api_provider)}</div>
+                <div class="gate-kpi-note">Luôn cần Founder duyệt trước khi gửi · RR-004 · AP-4</div>
+            </div>
+        </div>''',
+        unsafe_allow_html=True,
+    )
+
+
+def render_bank_api_sandbox(*, include_failure_tester: bool = False) -> None:
+    if st.session_state.ap4_status != "approved":
+        st.markdown(
+            '''<section class="sandbox-box locked">
+                <div class="sandbox-title">Bank API sandbox · đang khóa</div>
+                <div class="sandbox-copy">Sandbox chỉ mở sau AP-4. Trước thời điểm đó, không hồ sơ nào được gửi ra ngoài, kể cả môi trường mock/sandbox.</div>
+            </section>''',
+            unsafe_allow_html=True,
+        )
+        return
+
+    st.markdown("#### Bank API sandbox")
+    candidate_by_id = {item.credit_case_id: item for item in backend.finance.credit_candidates}
+    package_ids = (
+        backend.finance.credit_plan.decision_package_credit_case_ids
+        if backend.finance.credit_plan
+        else list(candidate_by_id)
+    )
+    api_case_ids = [
+        credit_case_id
+        for credit_case_id in package_ids
+        if credit_case_id in CREDIT_TO_API
+    ]
+    selected_api_case = st.selectbox(
+        "Gói tín dụng cần precheck",
+        api_case_ids,
+        key="bank_api_credit_case",
+    )
+    selected_api_id = CREDIT_TO_API[selected_api_case]
+    catalog_row = next(
+        (
+            row
+            for row in team_pack.get("12_API_CATALOG", [])
+            if str(row.get("api_id")) == selected_api_id
+        ),
+        {},
+    )
+    st.caption(
+        f"{selected_api_id} · {catalog_row.get('method', 'POST')} "
+        f"{catalog_row.get('endpoint', 'endpoint chưa khai báo')} · sandbox, không gửi ngân hàng thật"
+    )
+    scenario_status = int(st.session_state.get("bank_api_scenario_status", 200))
+    if include_failure_tester:
+        with st.expander("Chế độ kiểm thử lỗi kỹ thuật", expanded=False):
+            scenario_map = {
+                "Thành công": 200,
+                "Dữ liệu đầu vào không hợp lệ": 400,
+                "Xác thực sandbox thất bại": 401,
+                "Hồ sơ trùng hoặc xung đột": 409,
+                "Vượt giới hạn gọi thử": 429,
+                "Dịch vụ sandbox tạm thời gián đoạn": 503,
+            }
+            scenario_label = st.selectbox(
+                "Kịch bản phản hồi",
+                list(scenario_map),
+                key="bank_api_test_scenario",
+            )
+            scenario_status = scenario_map[scenario_label]
+            st.caption(
+                "Khu vực này phục vụ giám khảo/tester kiểm tra safe failure; Founder không cần chọn mã HTTP."
+            )
+    if st.button(
+        "Gọi Bank API mock",
+        type="primary",
+        width="stretch",
+        key="call_bank_api",
+    ):
+        candidate = candidate_by_id[selected_api_case]
+        st.session_state.bank_api_response = call_bank_api_mock(
+            selected_api_case,
+            candidate.requested_amount_vnd,
+            scenario_status,
+            api_catalog=team_pack.get("12_API_CATALOG", []),
+            sandbox_contracts=team_pack.get("22_SANDBOX_CONTRACT", []),
+        )
+        result = st.session_state.bank_api_response
+        if result["ok"]:
+            st.toast(f"{selected_api_id}: sandbox pre-check thành công.")
+        else:
+            st.toast(f"{selected_api_id}: safe failure đã được ghi nhận.")
+    if st.session_state.bank_api_response:
+        api_result = st.session_state.bank_api_response
+        if api_result["ok"]:
+            st.success(
+                "Sandbox pre-check thành công; hồ sơ vẫn cần phê duyệt con người trước khi submit."
+            )
+        else:
+            st.warning(f"Safe failure: {api_result.get('required_handling')}")
+        with st.expander("Chi tiết phản hồi kỹ thuật", expanded=False):
+            st.json(api_result, expanded=False)
+
+
+def render_bank_api_failure_tester() -> None:
+    if st.session_state.ap4_status != "approved":
+        st.caption("Bank API safe-failure tester sẽ mở sau AP-4.")
+        return
+    scenario_map = {
+        "Thành công": 200,
+        "Dữ liệu đầu vào không hợp lệ": 400,
+        "Xác thực sandbox thất bại": 401,
+        "Hồ sơ trùng hoặc xung đột": 409,
+        "Vượt giới hạn gọi thử": 429,
+        "Dịch vụ sandbox tạm thời gián đoạn": 503,
+    }
+    current_status = int(st.session_state.get("bank_api_scenario_status", 200))
+    current_label = next(
+        (label for label, status in scenario_map.items() if status == current_status),
+        "Thành công",
+    )
+    with st.expander("Chế độ kiểm thử lỗi kỹ thuật", expanded=False):
+        scenario_label = st.selectbox(
+            "Kịch bản phản hồi",
+            list(scenario_map),
+            index=list(scenario_map).index(current_label),
+            key="bank_api_test_scenario",
+        )
+        st.session_state.bank_api_scenario_status = scenario_map[scenario_label]
+        st.caption(
+            "Khu vực này phục vụ giám khảo/tester kiểm tra safe failure. Zone 2 sẽ dùng kịch bản này cho lần gọi Bank API mock tiếp theo."
+        )
+
+
+def render_runtime_export(card: dict[str, Any]) -> None:
+    if st.button(
+        "Xuất runtime log mẫu",
+        width="stretch",
+        key="export_runtime_log",
+    ):
+        log_path = write_json(
+            ROOT / "runtime_logs" / "sample_runtime_log.json",
+            build_sample_runtime_log(card),
+        )
+        card_path = write_json(
+            ROOT / "output" / "demo_decision_card.json",
+            card,
+        )
+        st.success(f"Đã xuất {log_path.name} và {card_path.name}")
+
+
 def render_decision_card(card: dict[str, Any]) -> None:
     approvals = {
         str(item.get("id")): str(item.get("status", "pending"))
@@ -1038,10 +1329,10 @@ def render_decision_card(card: dict[str, Any]) -> None:
                 </div>
                 <div>
                     <div class="decision-section"><div class="decision-section-title"><span class="source-tag tag-gpt">TÓM TẮT NGÔN NGỮ</span>Mâu thuẫn cần lưu ý</div>{conflict_rows}<div class="decision-guidance">↓ Xem Lý do đề xuất để hiểu vì sao hệ thống vẫn đưa ra khuyến nghị có điều kiện.</div></div>
-                    <div class="decision-section"><div class="decision-section-title">Trạng thái phê duyệt</div><div class="approval-summary">{''.join(approval_summary)}</div><div class="decision-guidance">Đọc xong phần trên, kéo xuống Hàng chờ phê duyệt để xử lý bước tiếp theo.</div></div>
                     <div class="decision-section"><div class="decision-section-title"><span class="source-tag tag-gpt">TÓM TẮT NGÔN NGỮ</span>Lý do đề xuất</div><div class="decision-note gpt">{esc(card.get("rationale"))}</div></div>
                 </div>
                 <div class="upside"><div class="upside-title">Nếu Founder duyệt đủ các bước trên, OPC nhận lại gì?</div>CON-004 có thể mang lại {esc(money(upside.get("gross_profit_vnd")))} lợi nhuận gộp và giúp dòng tiền phục hồi từ tháng {esc(_display_month(upside.get("recovery_month")))} với số dư cuối kỳ dự kiến {esc(money(upside.get("recovery_closing_cash_vnd")))}. Điều kiện là AP-1 đến AP-4 phải được xử lý đúng thứ tự trước khi Founder chốt AP-5.</div>
+                <div class="decision-section" style="grid-column:1/-1;margin-bottom:0"><div class="decision-section-title">Trạng thái phê duyệt</div><div class="approval-summary">{''.join(approval_summary)}</div><div class="decision-guidance">Đọc xong phần trên, kéo xuống Hàng chờ phê duyệt để xử lý bước tiếp theo.</div></div>
             </div>
         </section>''',
         unsafe_allow_html=True,
@@ -1051,6 +1342,16 @@ def render_decision_card(card: dict[str, Any]) -> None:
 def founder_next_step() -> str:
     if detail_contract_id != "CON-004":
         return "Đọc Finance/Risk evidence của hợp đồng này; Decision Card sâu hiện chỉ áp dụng cho CON-004."
+    rejected_approval = next(
+        (
+            approval_id
+            for approval_id, status_key in APPROVAL_ID_TO_STATUS_KEY.items()
+            if st.session_state.get(status_key) == "rejected"
+        ),
+        None,
+    )
+    if rejected_approval:
+        return f"{rejected_approval} đã bị Founder từ chối. Luồng đang khóa; bấm Xem lại lựa chọn nếu muốn đưa bước này về pending."
     if st.session_state.ap1_status != "approved":
         return "Bước tiếp theo: duyệt AP-1 để tạm giữ cụm TXN-006/007 trước khi xem Decision Card đầy đủ."
     if st.session_state.ap2_status != "approved" or st.session_state.ap3_status != "approved":
@@ -1085,6 +1386,11 @@ default_contract_index = contract_choices.index(default_contract)
 for key in ("ap1_status", "ap2_status", "ap3_status", "ap4_status"):
     if key not in st.session_state:
         st.session_state[key] = "pending"
+for key in ("ap1_reject_reason", "ap2_reject_reason", "ap3_reject_reason", "ap4_reject_reason"):
+    if key not in st.session_state:
+        st.session_state[key] = ""
+if "rejecting_approval_id" not in st.session_state:
+    st.session_state.rejecting_approval_id = None
 if "final_state" not in st.session_state:
     st.session_state.final_state = "BLOCKED_BY_AP1" if backend.risk.financial_flow_paused else "DECISION_READY"
 if "human_approval_id" not in st.session_state:
@@ -1095,6 +1401,8 @@ if "action_toast" not in st.session_state:
     st.session_state.action_toast = None
 if "bank_api_response" not in st.session_state:
     st.session_state.bank_api_response = None
+if "bank_api_scenario_status" not in st.session_state:
+    st.session_state.bank_api_scenario_status = 200
 if "openai_narrative_cache" not in st.session_state:
     st.session_state.openai_narrative_cache = None
 if "zone2_founder_insight_cache" not in st.session_state:
@@ -1365,6 +1673,28 @@ def related_credit_cases(contract_id: str) -> pd.DataFrame:
     )
 
 
+def credit_case_score(credit_case_id: str, cases: pd.DataFrame | None = None) -> float | None:
+    source = cases if cases is not None and not cases.empty else credit_df
+    if source.empty or "credit_case_id" not in source.columns or "eligibility_score" not in source.columns:
+        return None
+    rows = source[source["credit_case_id"].astype(str).eq(credit_case_id)]
+    if rows.empty:
+        rows = credit_df[credit_df["credit_case_id"].astype(str).eq(credit_case_id)]
+    if rows.empty:
+        return None
+    value = rows.iloc[0].get("eligibility_score")
+    return float(value) if pd.notna(value) else None
+
+
+def credit_case_score_text(credit_case_id: str, cases: pd.DataFrame | None = None) -> str:
+    score = credit_case_score(credit_case_id, cases)
+    return f"{score:.2f}" if score is not None else "n/a"
+
+
+def credit_priority_item(credit_case_id: str, label: str) -> str:
+    return f"{credit_case_id} ({credit_case_score_text(credit_case_id)}) · {label}"
+
+
 def overview_credit_takeaway(
     contract_scope: str,
     cases: pd.DataFrame,
@@ -1378,21 +1708,21 @@ def overview_credit_takeaway(
     if contract_scope == "CON-004":
         return (
             "TAKEAWAY · CON-004",
-            "CR-004 có điểm sẵn sàng cao nhất (0.78), phù hợp để ưu tiên xử lý trước. "
+            f"CR-004 có điểm sẵn sàng cao nhất ({credit_case_score_text('CR-004', cases)}), phù hợp để ưu tiên xử lý trước. "
             "CR-001 và CR-002 là gói vốn chính tổng 1,37 tỷ VND nhưng vẫn cần Founder phê duyệt "
             "và hoàn tất bằng chứng liên quan.",
         )
     if contract_scope == "CON-005":
         return (
             "TAKEAWAY · CON-005",
-            "CR-003 là hồ sơ chuyên biệt cho CON-005 nhưng mới đạt 0.56 và đang thiếu xác nhận "
+            f"CR-003 là hồ sơ chuyên biệt cho CON-005 nhưng mới đạt {credit_case_score_text('CR-003', cases)} và đang thiếu xác nhận "
             "từ nhà cung cấp; chưa đủ cơ sở để đưa vào gói đề xuất.",
         )
     if contract_scope == "Tất cả hợp đồng":
         return (
             "TAKEAWAY · TOÀN BỘ PORTFOLIO",
-            "Có 4 hồ sơ tín dụng. CR-004 có điểm sẵn sàng cao nhất (0.78); CR-003 thấp nhất "
-            "(0.56) và đang bị giữ do thiếu xác nhận từ nhà cung cấp.",
+            f"Có 4 hồ sơ tín dụng. CR-004 có điểm sẵn sàng cao nhất ({credit_case_score_text('CR-004', cases)}); "
+            f"CR-003 thấp nhất ({credit_case_score_text('CR-003', cases)}) và đang bị giữ do thiếu xác nhận từ nhà cung cấp.",
         )
     return (
         f"TAKEAWAY · {contract_scope}",
@@ -1405,11 +1735,19 @@ def contract_status(contract_id: str) -> tuple[str, str]:
     margin = margin_for_contract(contract_id)
     risks = execution_risks_for_contract(contract_id)
     gross_margin = margin.get("gross_margin")
-    if contract_id == "CON-004" and backend.risk.financial_flow_paused:
+    if (
+        contract_id == "CON-004"
+        and backend.risk.financial_flow_paused
+        and st.session_state.ap1_status != "approved"
+    ):
         return "CRITICAL", "Bị chặn bởi RR-001/AP-1"
     if risks:
         return "HIGH", "Có rủi ro triển khai cần theo dõi"
-    if gross_margin is not None and pd.notna(gross_margin) and float(gross_margin) < 0.27:
+    threshold = margin.get(
+        "target_margin",
+        getattr(getattr(backend.risk, "rule_snapshot", None), "margin_threshold", 0.28),
+    )
+    if gross_margin is not None and pd.notna(gross_margin) and float(gross_margin) < float(threshold):
         return "WATCH", "Biên lợi nhuận thấp hơn ngưỡng"
     return "OK", "Theo dõi bình thường"
 
@@ -1602,6 +1940,155 @@ def snapshot_cards_for_view(
 
 
 def render_stage_approval_controls() -> None:
+    def _reject_reason_key(approval_id: str) -> str:
+        return f"{approval_id.lower().replace('-', '')}_reject_reason"
+
+    def _set_approval_status(approval_id: str, status: str, reason: str = "") -> None:
+        status_key = APPROVAL_ID_TO_STATUS_KEY[approval_id]
+        request_id = APPROVAL_ID_TO_REQUEST_ID[approval_id]
+        st.session_state[status_key] = status
+        st.session_state.human_approval_id = (
+            f"{request_id}-REJECT" if status == "rejected" else request_id
+        )
+        st.session_state[_reject_reason_key(approval_id)] = reason if status == "rejected" else ""
+        st.session_state.rejecting_approval_id = None
+        st.session_state.action_warning = None
+        if status == "approved":
+            if approval_id == "AP-1":
+                st.session_state.final_state = "CREDIT_PACKAGE_PROPOSED"
+                st.session_state.action_toast = "Đã duyệt AP-1 và mở khóa luồng quyết định."
+            elif approval_id == "AP-2":
+                st.session_state.action_toast = "Đã duyệt AP-2 vốn lưu động."
+            elif approval_id == "AP-3":
+                st.session_state.action_toast = "Đã duyệt AP-3 bảo lãnh thực hiện."
+            elif approval_id == "AP-4":
+                st.session_state.final_state = "DECISION_READY"
+                st.session_state.action_toast = "Đã duyệt AP-4. Bank API sandbox đã được mở."
+        else:
+            if approval_id == "AP-1":
+                st.session_state.final_state = "BLOCKED_BY_AP1"
+            elif st.session_state.final_state not in FINAL_STATES:
+                st.session_state.final_state = "CREDIT_PACKAGE_PROPOSED"
+            st.session_state.action_toast = f"Đã ghi nhận không duyệt {approval_id}."
+
+    def _clear_approval_and_dependents(approval_id: str) -> None:
+        cascade = {
+            "AP-1": ["AP-1", "AP-2", "AP-3", "AP-4"],
+            "AP-2": ["AP-2", "AP-4"],
+            "AP-3": ["AP-3", "AP-4"],
+            "AP-4": ["AP-4"],
+        }[approval_id]
+        for item_id in cascade:
+            st.session_state[APPROVAL_ID_TO_STATUS_KEY[item_id]] = "pending"
+            st.session_state[_reject_reason_key(item_id)] = ""
+        if approval_id == "AP-1":
+            st.session_state.final_state = "BLOCKED_BY_AP1"
+        elif st.session_state.final_state not in FINAL_STATES:
+            st.session_state.final_state = "CREDIT_PACKAGE_PROPOSED"
+        st.session_state.bank_api_response = None
+        st.session_state.rejecting_approval_id = None
+        st.session_state.human_approval_id = None
+        st.session_state.action_warning = None
+        st.session_state.action_toast = f"Đã đưa {approval_id} về trạng thái chờ Founder xem lại."
+
+    def _render_reject_confirmation(approval_id: str) -> None:
+        reason_options = APPROVAL_REJECT_REASONS[approval_id]
+        selected_reason = st.selectbox(
+            "Lý do không duyệt",
+            reason_options,
+            key=f"{approval_id.lower().replace('-', '_')}_reject_reason_select",
+        )
+        custom_reason = ""
+        if selected_reason == "Khác":
+            custom_reason = st.text_input(
+                "Lý do khác",
+                key=f"{approval_id.lower().replace('-', '_')}_reject_reason_other",
+                placeholder="Nhập lý do ngắn gọn",
+            )
+        final_reason = custom_reason.strip() if selected_reason == "Khác" and custom_reason.strip() else selected_reason
+        confirm, cancel = st.columns(2)
+        if confirm.button(
+            "Xác nhận không duyệt",
+            width="stretch",
+            key=f"confirm_reject_{approval_id.lower().replace('-', '')}",
+        ):
+            _set_approval_status(approval_id, "rejected", final_reason)
+            st.rerun()
+        if cancel.button(
+            "Hủy",
+            width="stretch",
+            key=f"cancel_reject_{approval_id.lower().replace('-', '')}",
+        ):
+            st.session_state.rejecting_approval_id = None
+            st.rerun()
+
+    def _render_approval_row(
+        approval_id: str,
+        title: str,
+        subtitle: str,
+        blocked_item: bool,
+        approve_key: str,
+    ) -> None:
+        status_key = APPROVAL_ID_TO_STATUS_KEY[approval_id]
+        status = st.session_state[status_key]
+        is_done = status == "approved"
+        is_rejected = status == "rejected"
+        row_class = "done" if is_done else "rejected" if is_rejected else ""
+        pill_class = "locked" if blocked_item else approval_status_class(status)
+        status_copy = "Chưa mở" if blocked_item else approval_status_label(status, approval_id)
+        reject_reason = st.session_state.get(_reject_reason_key(approval_id), "")
+        consequence = APPROVAL_REJECT_CONSEQUENCES.get(approval_id, "")
+        copy = subtitle
+        if blocked_item:
+            copy = f"{subtitle} · chỉ mở sau AP-2 và AP-3" if approval_id == "AP-4" else subtitle
+        elif is_rejected:
+            reason_suffix = f" Lý do: {reject_reason}." if reject_reason else ""
+            copy = f"{consequence}{reason_suffix}"
+        info, action = st.columns([0.68, 0.32], vertical_alignment="center")
+        info.markdown(
+            f'''<div class="approval-queue-row {row_class}">
+                <div class="approval-queue-title">{esc(title)} <span class="approval-pill {pill_class}">{esc(status_copy)}</span></div>
+                <div class="approval-queue-copy">{esc(copy)}</div>
+            </div>''',
+            unsafe_allow_html=True,
+        )
+        if blocked_item:
+            action.button(
+                f"Duyệt {approval_id}",
+                width="stretch",
+                disabled=True,
+                key=approve_key,
+            )
+            return
+        if st.session_state.rejecting_approval_id == approval_id:
+            with action:
+                _render_reject_confirmation(approval_id)
+            return
+        if status in {"approved", "rejected"}:
+            if action.button(
+                "Xem lại lựa chọn",
+                width="stretch",
+                key=f"review_{approval_id.lower().replace('-', '')}",
+            ):
+                _clear_approval_and_dependents(approval_id)
+                st.rerun()
+            return
+        approve_col, reject_col = action.columns(2)
+        if approve_col.button(
+            f"Duyệt {approval_id}",
+            width="stretch",
+            key=approve_key,
+        ):
+            _set_approval_status(approval_id, "approved")
+            st.rerun()
+        if reject_col.button(
+            "Không duyệt",
+            width="stretch",
+            key=f"reject_{approval_id.lower().replace('-', '')}",
+        ):
+            st.session_state.rejecting_approval_id = approval_id
+            st.rerun()
+
     ap1_done = st.session_state.ap1_status == "approved"
     ap2_done = st.session_state.ap2_status == "approved"
     ap3_done = st.session_state.ap3_status == "approved"
@@ -1618,26 +2105,13 @@ def render_stage_approval_controls() -> None:
         unsafe_allow_html=True,
     )
     if not ap1_done:
-        info, action = st.columns([0.75, 0.25], vertical_alignment="center")
-        info.markdown(
-            f'''<div class="approval-queue-row">
-                <div class="approval-queue-title">AP-1 · Tạm giữ TXN-006/007</div>
-                <div class="approval-queue-copy">{esc(money(risk.transaction_hold_amount_vnd))} · Founder xác nhận giữ giao dịch để mở gói quyết định.</div>
-            </div>''',
-            unsafe_allow_html=True,
+        _render_approval_row(
+            "AP-1",
+            "AP-1 · Tạm giữ TXN-006/007",
+            f"{money(risk.transaction_hold_amount_vnd)} · Founder xác nhận giữ giao dịch để mở gói quyết định.",
+            False,
+            "approve_ap1",
         )
-        if action.button(
-            "Duyệt AP-1",
-            type="primary",
-            width="stretch",
-            key="approve_ap1",
-        ):
-            st.session_state.ap1_status = "approved"
-            st.session_state.final_state = "CREDIT_PACKAGE_PROPOSED"
-            st.session_state.human_approval_id = "APR-001"
-            st.session_state.action_warning = None
-            st.session_state.action_toast = "Đã duyệt AP-1 và mở khóa luồng quyết định."
-            st.rerun()
         return
 
     approval_items = [
@@ -1671,46 +2145,17 @@ def render_stage_approval_controls() -> None:
         ),
     ]
     for title, subtitle, key, done, blocked_item in approval_items:
-        info, action = st.columns([0.75, 0.25], vertical_alignment="center")
-        status_copy = "Founder đã duyệt" if done else "Chưa mở" if blocked_item else "Đang chờ Founder"
-        info.markdown(
-            f'''<div class="approval-queue-row {'done' if done else ''}">
-                <div class="approval-queue-title">{esc(title)} <span class="approval-pill {'approved' if done else 'locked' if blocked_item else 'pending'}">{esc(status_copy)}</span></div>
-                <div class="approval-queue-copy">{esc(subtitle)}{' · chỉ mở sau AP-2 và AP-3' if key == 'approve_ap4' else ''}</div>
-            </div>''',
-            unsafe_allow_html=True,
-        )
         approval_id = key.removeprefix("approve_").removesuffix("_done").upper().replace("AP", "AP-")
-        if action.button(
-            "Đã duyệt" if done else f"Duyệt {approval_id}",
-            width="stretch",
-            disabled=done or blocked_item,
-            key=key,
-        ):
-            if key == "approve_ap2":
-                st.session_state.ap2_status = "approved"
-                st.session_state.human_approval_id = "APR-002"
-                st.session_state.action_toast = "Đã duyệt AP-2 vốn lưu động."
-            elif key == "approve_ap3":
-                st.session_state.ap3_status = "approved"
-                st.session_state.human_approval_id = "APR-003"
-                st.session_state.action_toast = "Đã duyệt AP-3 bảo lãnh thực hiện."
-            else:
-                st.session_state.ap4_status = "approved"
-                st.session_state.final_state = "DECISION_READY"
-                st.session_state.human_approval_id = "APR-004"
-                st.session_state.action_toast = "Đã duyệt AP-4. Bank API sandbox đã được mở."
-            st.session_state.action_warning = None
-            st.rerun()
+        _render_approval_row(approval_id, title, subtitle, blocked_item, key)
     if not ap23_done:
         st.caption("AP-4 chỉ mở sau khi AP-2 và AP-3 cùng hoàn tất.")
 
 
 def render_hold_card() -> None:
     st.markdown(
-        '<div class="hold-card"><strong>CR-003 · trade finance — HOLD</strong><br>'
-        'Eligibility 0.56 · Supplier confirmation: MISSING. '
-        'Không ảnh hưởng CR-001/CR-002 trong gói chính.</div>',
+        f'<div class="hold-card"><strong>CR-003 · trade finance — HOLD</strong><br>'
+        f'Eligibility {esc(credit_case_score_text("CR-003"))} · Supplier confirmation: MISSING. '
+        f'Không ảnh hưởng CR-001/CR-002 trong gói chính.</div>',
         unsafe_allow_html=True,
     )
 
@@ -1932,6 +2377,8 @@ elif page == "Chi tiết hợp đồng":
                     unsafe_allow_html=True,
                 )
             if detail_contract_id == "CON-004":
+                render_gate_reason_kpis(decision_card)
+            if detail_contract_id == "CON-004":
                 st.markdown(
                     f'''<div class="analysis-overview-title">
                         <span>Kết quả phân tích sức khỏe tài chính tổng thể của OPC</span>
@@ -1965,20 +2412,17 @@ elif page == "Chi tiết hợp đồng":
                                     and worst_month_value[4] == "-"
                                     else worst_month_value or selected_period
                                 )
+                                credit_priority_items = [
+                                    credit_priority_item("CR-004", "đủ điều kiện, nên làm trước"),
+                                    credit_priority_item("CR-001", "đủ điều kiện"),
+                                    credit_priority_item("CR-002", "cần thêm bằng chứng dòng tiền"),
+                                    credit_priority_item("CR-003", "chưa đủ điều kiện, đang treo"),
+                                ]
+                                credit_priority_html = "".join(
+                                    f"<li>{esc(item)}</li>" for item in credit_priority_items
+                                )
                                 st.markdown(
-                                    f'''<ul class="agent-insight-list">
-                                        <li><strong>Nhu cầu vốn:</strong> {esc(founder_insights.get("finance_funding"))}</li>
-                                        <li><strong>Khả năng sinh lời:</strong> {esc(founder_insights.get("finance_margin"))}</li>
-                                        <li><strong>Phương án tín dụng:</strong> {esc(founder_insights.get("finance_credit"))}
-                                            <ol class="credit-priority-list">
-                                                <li>CR-004 (0.78) · đủ điều kiện, nên làm trước</li>
-                                                <li>CR-001 (0.71) · đủ điều kiện</li>
-                                                <li>CR-002 (0.63) · cần thêm bằng chứng dòng tiền</li>
-                                                <li>CR-003 (0.56) · chưa đủ điều kiện, đang treo</li>
-                                            </ol>
-                                        </li>
-                                    </ul>
-                                    <div class="agent-kpi-grid">
+                                    f'''<div class="agent-kpi-grid">
                                         <div class="agent-kpi-card">
                                             <div class="agent-kpi-label">Số tiền thiếu cho vận hành</div>
                                             <div class="agent-kpi-value">{esc(money(worst_period.funding_need_vnd) if worst_period else "n/a")}</div>
@@ -1994,7 +2438,16 @@ elif page == "Chi tiết hợp đồng":
                                             <div class="agent-kpi-value">CR-004 → CR-001</div>
                                             <div class="agent-kpi-note">Ưu tiên theo mức sẵn sàng</div>
                                         </div>
-                                    </div>''',
+                                    </div>
+                                    <ul class="agent-insight-list">
+                                        <li><strong>Nhu cầu vốn:</strong> {esc(founder_insights.get("finance_funding"))}</li>
+                                        <li><strong>Khả năng sinh lời:</strong> {esc(founder_insights.get("finance_margin"))}</li>
+                                        <li><strong>Phương án tín dụng:</strong> {esc(founder_insights.get("finance_credit"))}
+                                            <ol class="credit-priority-list">
+                                                {credit_priority_html}
+                                            </ol>
+                                        </li>
+                                    </ul>''',
                                     unsafe_allow_html=True,
                                 )
                             else:
@@ -2018,17 +2471,7 @@ elif page == "Chi tiết hợp đồng":
                             st.markdown("##### Risk & Compliance Agent")
                             if detail_contract_id == "CON-004":
                                 st.markdown(
-                                    f'''<ul class="agent-insight-list">
-                                        <li><strong>Giao dịch rủi ro cao:</strong> {esc(founder_insights.get("risk_transaction"))}</li>
-                                        <li><strong>Rủi ro từ đơn hàng:</strong> {esc(founder_insights.get("risk_order"))}</li>
-                                        <li><strong>Rủi ro gói tín dụng:</strong> {esc(founder_insights.get("risk_credit"))}</li>
-                                    </ul>
-                                    <div class="agent-kpi-grid">
-                                        <div class="agent-kpi-card danger">
-                                            <div class="agent-kpi-label">Giá trị giao dịch bị chặn</div>
-                                            <div class="agent-kpi-value">{esc(money(risk.transaction_hold_amount_vnd))}</div>
-                                            <div class="agent-kpi-note">TXN-006/007 · RR-001</div>
-                                        </div>
+                                    f'''<div class="agent-kpi-grid">
                                         <div class="agent-kpi-card danger">
                                             <div class="agent-kpi-label">Mức phạt nếu giao trễ</div>
                                             <div class="agent-kpi-value">{esc(money(founder_insight_facts.get("ord004_penalty_vnd_per_day")))}/ngày</div>
@@ -2039,7 +2482,12 @@ elif page == "Chi tiết hợp đồng":
                                             <div class="agent-kpi-value">CR-003</div>
                                             <div class="agent-kpi-note">Thiếu xác nhận từ nhà cung cấp</div>
                                         </div>
-                                    </div>''',
+                                    </div>
+                                    <ul class="agent-insight-list">
+                                        <li><strong>Giao dịch rủi ro cao:</strong> {esc(founder_insights.get("risk_transaction"))}</li>
+                                        <li><strong>Rủi ro từ đơn hàng:</strong> {esc(founder_insights.get("risk_order"))}</li>
+                                        <li><strong>Rủi ro gói tín dụng:</strong> {esc(founder_insights.get("risk_credit"))}</li>
+                                    </ul>''',
                                     unsafe_allow_html=True,
                                 )
                             elif exec_risks:
@@ -2067,9 +2515,11 @@ elif page == "Chi tiết hợp đồng":
 
             if detail_contract_id == "CON-004":
                 if st.session_state.ap1_status == "approved":
+                    render_cashflow_credit_data(detail_contract_id, decision_card)
                     render_cashflow_credit_insights(decision_card, backend)
                 if agent_visible("Decision & Partner"):
                     render_decision_partner_card(decision_card, backend)
+                    render_decision_partner_technical(decision_card)
                 if not blocked:
                     render_decision_card(decision_card)
             elif agent_visible("Decision & Partner"):
@@ -2122,12 +2572,6 @@ elif page == "Chi tiết hợp đồng":
                     )
                     st.dataframe(flagged, width="stretch", hide_index=True)
 
-            if (
-                detail_contract_id == "CON-004"
-                and agent_visible("Decision & Partner")
-            ):
-                render_decision_partner_technical(decision_card)
-
             if detail_contract_id != "CON-004":
                 st.markdown("---")
                 st.markdown("#### Hỗ trợ quyết định")
@@ -2147,14 +2591,7 @@ elif page == "Chi tiết hợp đồng":
                     unsafe_allow_html=True,
                 )
 
-            if detail_contract_id == "CON-004":
-                if st.session_state.ap1_status == "approved":
-                    with st.expander(
-                        "Dữ liệu kỹ thuật · Dòng tiền & Gói tín dụng",
-                        expanded=False,
-                    ):
-                        render_cashflow_credit_data(detail_contract_id, decision_card)
-            else:
+            if detail_contract_id != "CON-004":
                 render_cashflow_credit_data(detail_contract_id, decision_card)
 
             st.markdown("---")
@@ -2164,109 +2601,11 @@ elif page == "Chi tiết hợp đồng":
                     "Hợp đồng hiện tại giữ ở precheck vì workbook chưa có approval workflow riêng."
                 )
             else:
-                if st.session_state.ap4_status == "approved":
-                    st.markdown("#### Bank API sandbox")
-                    candidate_by_id = {
-                        item.credit_case_id: item
-                        for item in backend.finance.credit_candidates
-                    }
-                    package_ids = (
-                        backend.finance.credit_plan.decision_package_credit_case_ids
-                        if backend.finance.credit_plan
-                        else list(candidate_by_id)
-                    )
-                    api_case_ids = [
-                        credit_case_id
-                        for credit_case_id in package_ids
-                        if credit_case_id in CREDIT_TO_API
-                    ]
-                    selected_api_case = st.selectbox(
-                        "Gói tín dụng cần precheck",
-                        api_case_ids,
-                        key="bank_api_credit_case",
-                    )
-                    selected_api_id = CREDIT_TO_API[selected_api_case]
-                    catalog_row = next(
-                        (
-                            row
-                            for row in team_pack.get("12_API_CATALOG", [])
-                            if str(row.get("api_id")) == selected_api_id
-                        ),
-                        {},
-                    )
-                    st.caption(
-                        f"{selected_api_id} · {catalog_row.get('method', 'POST')} "
-                        f"{catalog_row.get('endpoint', 'endpoint chưa khai báo')} · sandbox, không gửi ngân hàng thật"
-                    )
-                    scenario_status = 200
-                    with st.expander("Chế độ kiểm thử lỗi kỹ thuật", expanded=False):
-                        scenario_map = {
-                            "Thành công": 200,
-                            "Dữ liệu đầu vào không hợp lệ": 400,
-                            "Xác thực sandbox thất bại": 401,
-                            "Hồ sơ trùng hoặc xung đột": 409,
-                            "Vượt giới hạn gọi thử": 429,
-                            "Dịch vụ sandbox tạm thời gián đoạn": 503,
-                        }
-                        scenario_label = st.selectbox(
-                            "Kịch bản phản hồi",
-                            list(scenario_map),
-                            key="bank_api_test_scenario",
-                        )
-                        scenario_status = scenario_map[scenario_label]
-                        st.caption(
-                            "Khu vực này phục vụ giám khảo/tester kiểm tra safe failure; Founder không cần chọn mã HTTP."
-                        )
-                    if st.button(
-                        "Gọi Bank API mock",
-                        type="primary",
-                        width="stretch",
-                        key="call_bank_api",
-                    ):
-                        candidate = candidate_by_id[selected_api_case]
-                        st.session_state.bank_api_response = call_bank_api_mock(
-                            selected_api_case,
-                            candidate.requested_amount_vnd,
-                            scenario_status,
-                            api_catalog=team_pack.get("12_API_CATALOG", []),
-                            sandbox_contracts=team_pack.get("22_SANDBOX_CONTRACT", []),
-                        )
-                        result = st.session_state.bank_api_response
-                        if result["ok"]:
-                            st.toast(f"{selected_api_id}: sandbox pre-check thành công.")
-                        else:
-                            st.toast(f"{selected_api_id}: safe failure đã được ghi nhận.")
-                    if st.session_state.bank_api_response:
-                        api_result = st.session_state.bank_api_response
-                        if api_result["ok"]:
-                            st.success(
-                                "Sandbox pre-check thành công; hồ sơ vẫn cần phê duyệt con người trước khi submit."
-                            )
-                        else:
-                            st.warning(
-                                f"Safe failure: {api_result.get('required_handling')}"
-                            )
-                        with st.expander("Chi tiết phản hồi kỹ thuật", expanded=False):
-                            st.json(api_result, expanded=False)
-
-                if st.button(
-                    "Xuất runtime log mẫu",
-                    width="stretch",
-                    key="export_runtime_log",
-                ):
-                    log_path = write_json(
-                        ROOT / "runtime_logs" / "sample_runtime_log.json",
-                        build_sample_runtime_log(decision_card),
-                    )
-                    card_path = write_json(
-                        ROOT / "output" / "demo_decision_card.json",
-                        decision_card,
-                    )
-                    st.success(f"Đã xuất {log_path.name} và {card_path.name}")
-
                 if analysis_done:
                     render_stage_approval_controls()
+                    render_bank_api_sandbox()
                     render_final_decision_controls()
+                    render_runtime_export(decision_card)
 
     with evidence_col:
         with st.container(border=True):
@@ -2277,6 +2616,8 @@ elif page == "Chi tiết hợp đồng":
                 unsafe_allow_html=True,
             )
             render_openai_evidence(decision_card)
+            if detail_contract_id == "CON-004" and analysis_done:
+                render_bank_api_failure_tester()
             with st.expander("Bằng chứng kỹ thuật", expanded=False):
                 st.json(
                     {
